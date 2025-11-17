@@ -4,8 +4,8 @@ from yaml.loader import FullLoader
 
 
 def data_config(is_pretrain=True):
-    with open("configs/data_config.yaml", "r") as f:
-        data_config = yaml.load(f, Loader=FullLoader)
+    with open("configs/data_config.yaml", "r") as d:
+        data_config = yaml.load(d, Loader=FullLoader)
 
         if is_pretrain:
             return data_config['pretrain']
@@ -14,8 +14,8 @@ def data_config(is_pretrain=True):
         
 
 def model_config(is_pretrain=True):
-    with open("configs/model_config.yaml", "r") as f:
-        model_config = yaml.load(f, Loader=FullLoader)
+    with open("configs/model_config.yaml", "r") as m:
+        model_config = yaml.load(m, Loader=FullLoader)
 
         if is_pretrain:
             return model_config['pretrain']

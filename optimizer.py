@@ -3,8 +3,6 @@
 # https://github.com/microsoft/SimMIM
 # --------------------------------------------------------
 
-import json
-from functools import partial
 from torch import optim as optim
 
 

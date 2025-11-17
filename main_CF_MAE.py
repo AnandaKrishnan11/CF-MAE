@@ -1,10 +1,11 @@
 import torch
 
-from torch.optim import SGD
-
-from model.CF_MAE import TemporalGeoMAE_ConvDecoder
-from data.pretext_loader import dataloader
-from data.config import pre_text_samples
+from model.build_model import build_model
+from data.pretext_loader import build_loader 
+from configs.build_config import load_config
+from logger import create_logger
+from lr_scheduler import build_scheduler
+from optimizer import build_optimizer
 
 import time
 
@@ -32,35 +33,15 @@ def main(
         mask_ratio= 0.75
         ):
 
+
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-        print(f'[DEVICE]----------------------------{device}')
-
-
-        model = TemporalGeoMAE_ConvDecoder(
-        
-            img_size,
-            patch_size,
-            in_channels,
-            encoder_name,
-            encoder_embed_dim,
-            decoder_embed_dim,
-            mask_ratio)
+        model = build_model(config=load_config,name='CF_MAE')
         
         model.to(device)
 
-        optimizer = SGD(model.parameters(), lr=0.01)
-
-
-        train_loader = dataloader(
-                
-            pre_datafolder,
-            post_datafolder,
-            pre_text_samples.PRE_MEANSTD,
-            pre_text_samples.POST_MEANSTD)
-    
-        print(F'[INITIALIZING THE TRAINING WITH-----{len(train_loader)*200}--NUMBER OF DATAS-----]')
-        
+        train_loader = build_loader(config=load_config,distributed=False)
+            
         model.train()
         for i in range(1,epochs+1):
                 
@@ -93,7 +74,6 @@ def main(
                         loss.backward()
                         optimizer.step()
 
-
                 end_time = time.time()
 
                 print(f'[EPOCHS-{i}]----[LOSS-{t_loss}]----[TIME-{start_time-end_time}]---------------------------------------')
@@ -106,10 +86,7 @@ if __name__ == "__main__":
 
     args = argparses()
 
-    main(
-        pre_datafolder = args.pre_datafolder,
-        post_datafolder = args.post_datafolder
-    )
+    main()
     
 
                         

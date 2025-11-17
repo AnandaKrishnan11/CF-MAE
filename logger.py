@@ -1,4 +1,3 @@
-
 # --------------------------------------------------------
 # Based from SimMIM codebase
 # https://github.com/microsoft/SimMIM

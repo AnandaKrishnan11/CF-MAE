@@ -3,14 +3,13 @@ import torch.distributed as dist
 from torchvision.transforms.functional import normalize
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
 
-import numpy as np
 import os
-
+import numpy as np
 from skimage.io import imread
 
 
 # Dataset and Dataloader
-class CF_MAEDataset(Dataset):
+class CF_MAE_Dataset(Dataset):
 
     def __init__(self,config):
         super().__init__()
@@ -19,7 +18,7 @@ class CF_MAEDataset(Dataset):
 
     def __getitem__(self, index):
 
-        pre,post = self.get_data()
+        self.pre,self.post = self.get_data()
 
         pre = self.pre[index]
         post = self.post[index]
@@ -33,8 +32,8 @@ class CF_MAEDataset(Dataset):
 
         for folds in os.listdir(self.data_config['path']):
             if folds == 'SEN4FLOOD_A' or folds == 'SEN4FLOOD_B':
-                pre = os.listdir(os.path.join(folds,'pre'))
-                post = os.listdir(os.path.join(folds,'post'))
+                pre = os.listdir(os.path.join(self.data_config['path'],folds,'pre'))
+                post = os.listdir(os.path.join(self.data_config['path'],folds,'post'))
 
                 for pre_img,post_img in zip(pre,post):
 
@@ -43,8 +42,8 @@ class CF_MAEDataset(Dataset):
 
                     pre_list.extend(pre), post_list.extend(post) = self.pre_transform(pre_im,type='sar'), self.post_transform(post_im, type='sar')
             else: 
-                pre = os.listdir(os.path.join(folds,'pre'))
-                post = os.listdir(os.path.join(folds,'post'))
+                pre = os.listdir(os.path.join(self.data_config['path'],folds,'pre'))
+                post = os.listdir(os.path.join(self.data_config['path'],folds,'post'))
 
                 for pre_img,post_img in zip(pre,post):
 
@@ -88,15 +87,13 @@ def build_loader(config,distributed = False):
 
     config = config(is_pretrain=True,type='data')        
     
-    dataset = CF_MAEDataset(config)
+    dataset = CF_MAE_Dataset(config)
 
     if distributed:
         sampler = DistributedSampler(dataset, num_replicas=dist.get_world_size(), rank=dist.get_rank(), shuffle=True)
         dataloader =  DataLoader(dataset,sampler=sampler,batch_size=config['batch_size'],num_workers=config['num_workers'],pin_memory=config['pin_memory'], drop_last=True)
-
-        return dataloader
     
     else: 
         dataloader =  DataLoader(dataset,shuffle=config['shuffle'],batch_size=config['batch_size'],num_workers=config['num_workers'],pin_memory=True, drop_last=True)
 
-        return dataloader
+    return dataloader
