@@ -1,0 +1,63 @@
+# ====================================================================
+# PRETEXT / DOMAIN-BASED PRETRAINING DATASETS
+# ====================================================================
+
+pretrain:
+  dataset_name: PANDORA   # Paired Natural Disaster Observations for Reconstruction and Analysis
+  path: E:\pretext_data
+  image_size: 224
+  num_channels: 3
+
+  batch_size: 200
+  num_workers: 8
+  pin_memory: True
+  shuffle: True
+
+  total_samples: 376634
+
+  # INPUT MODALITIES
+  modalities:
+    PRE:
+      OPTICAL:
+        mean: []
+        std: []
+      SAR:
+        mean: [-10.06004422, -17.21891063, 0.58428808]
+        std:  [ 4.22810151,   4.96386208, 7.29221064]
+
+    POST:
+      OPTICAL:
+        mean: []
+        std: []
+      SAR:
+        mean: [-12.03841632, -19.97186548, 0.59826662]
+        std:  [ 5.39673854,   6.48607654, 6.01571135]
+
+
+#FINETUNE \ DOWNSTREAM DATASETS
+
+#Sentinel-2 Wildfire Change Detection (S2-WCD)
+S2-WCD:
+
+        image_size : 224
+
+        no_channels : 3
+
+        batch_size : 
+
+        learning_rate : 0.001
+
+        total_no_data : 
+
+        PRE :
+            MEAN : []
+            STD : []
+        POST : 
+            MEAN : []
+            STD : []
+
+#LANDSLIDE
+#DAMAGE ASSESSMENT
+#FLOODING
+
+

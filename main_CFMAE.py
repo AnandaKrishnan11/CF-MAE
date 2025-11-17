@@ -3,7 +3,7 @@ import torch
 from torch.optim import SGD
 
 from model.CF_MAE import TemporalGeoMAE_ConvDecoder
-from data.data_pretext import dataloader
+from data.pretext_loader import dataloader
 from data.config import pre_text_samples
 
 import time
@@ -33,6 +33,8 @@ def main(
         ):
 
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        print(f'[DEVICE]----------------------------{device}')
 
 
         model = TemporalGeoMAE_ConvDecoder(
