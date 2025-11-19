@@ -12,10 +12,10 @@ def build_optimizer(config, model, logger, is_pretrain):
     else:
         raise NotImplementedError
 
-
 def build_pretrain_optimizer(config, model, logger):
 
     logger.info('>>>>>>>>>> Build Optimizer for Pre-training Stage')
+
     skip = {}
     skip_keywords = {}
     if hasattr(model, 'no_weight_decay'):
@@ -36,10 +36,10 @@ def build_pretrain_optimizer(config, model, logger):
                                 lr=config['training']['learning_rate'], weight_decay=config['training']['weight_decay'])
 
     logger.info(f'>>>>>>>>>> Created {opt_lower} Optimizer for Pre-training Stage')
-
     return optimizer
 
 def get_pretrain_param_groups(model, logger, skip_list=(), skip_keywords=()):
+
     has_decay = []
     no_decay = []
     has_decay_name = []
