@@ -11,14 +11,18 @@ from skimage.io import imread
 # Dataset and Dataloader
 class CF_MAE_Dataset(Dataset):
 
-    def __init__(self,config):
+    def __init__(self,config,logger):
         super().__init__()
 
-        self.data_config = config(is_pretrain=True,type='data')        
-
-    def __getitem__(self, index):
+        self.data_config = config    
 
         self.pre,self.post = self.get_data()
+        
+        self.logger = logger
+
+        self.logger.info(f'[CF_MAE_Dataset INIT]---------- with {len(self.pre)} PRE and {len(self.post)} Images')
+        
+    def __getitem__(self, index):
 
         pre = self.pre[index]
         post = self.post[index]
@@ -83,11 +87,11 @@ class CF_MAE_Dataset(Dataset):
     
 
 # dataloader function
-def build_loader(config,distributed = False):
+def build_loader(config,logger,distributed = False):
 
     config = config(is_pretrain=True,type='data')        
     
-    dataset = CF_MAE_Dataset(config)
+    dataset = CF_MAE_Dataset(config,logger)
 
     if distributed:
         sampler = DistributedSampler(dataset, num_replicas=dist.get_world_size(), rank=dist.get_rank(), shuffle=True)
@@ -95,5 +99,5 @@ def build_loader(config,distributed = False):
     
     else: 
         dataloader =  DataLoader(dataset,shuffle=config['shuffle'],batch_size=config['batch_size'],num_workers=config['num_workers'],pin_memory=True, drop_last=True)
-
+    
     return dataloader

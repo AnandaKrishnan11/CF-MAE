@@ -5,8 +5,7 @@
 pretrain:
 
   model:
-    name: CF-MAE                    # Change-Fused Masked Autoencoder
-    type: mae                       # Self-supervised masked autoencoder
+    name: CF-MAE # Change-Fused Masked Autoencoder
     total_params: ~97M
 
     encoder:
@@ -15,10 +14,11 @@ pretrain:
       in_channels: 3
       patch_size: 16
       embed_dim: 768
-      num_layers: 12                # transformer blocks/depth
+      num_layers: 12          
       num_heads: 12
+      QKV_bais: True
 
-      drop_path: 0.1                # stochastic depth 
+      drop_path: 0.1 # stochastic depth 
 
     decoder:
 
@@ -30,7 +30,7 @@ pretrain:
       type: change fusion         
       modalities: [optical, sar]    
 
-    # TRAINING CONFIG
+    # TRAINING CONFIG [ Based from SimMIM codebase - https://github.com/microsoft/SimMIM ]
     training:
       epochs: 200
       warmup_epochs: 20
@@ -51,5 +51,8 @@ pretrain:
 
       step_size: 30 #ONLY FOR STEP SCHEDULER
       gamma: 0.1 #ONLY FOR STEP SCHEDULER
+
+      #Path to save the trained CF-MAE
+      PATH: ''
 
 

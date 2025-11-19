@@ -14,7 +14,6 @@ def build_optimizer(config, model, logger, is_pretrain):
 
 
 def build_pretrain_optimizer(config, model, logger):
-    config = config(is_pretrain=True,type='model')
 
     logger.info('>>>>>>>>>> Build Optimizer for Pre-training Stage')
     skip = {}
@@ -36,7 +35,8 @@ def build_pretrain_optimizer(config, model, logger):
         optimizer = optim.AdamW(parameters, eps=config['training']['eps'], betas=config['training']['betas'],
                                 lr=config['training']['learning_rate'], weight_decay=config['training']['weight_decay'])
 
-    logger.info(optimizer)
+    logger.info(f'>>>>>>>>>> Created {opt_lower} Optimizer for Pre-training Stage')
+
     return optimizer
 
 def get_pretrain_param_groups(model, logger, skip_list=(), skip_keywords=()):

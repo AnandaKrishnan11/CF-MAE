@@ -8,13 +8,13 @@ from timm.scheduler.cosine_lr import CosineLRScheduler
 from timm.scheduler.step_lr import StepLRScheduler
 
 
-def build_scheduler(config, optimizer, n_iter_per_epoch):
+def build_scheduler(config, logger, optimizer, n_iter_per_epoch):
 
     num_steps = int(config['training']['epochs'] * n_iter_per_epoch)
     warmup_steps = int(config['training']['warmup_epochs'] * n_iter_per_epoch)
     decay_steps = int(config['training']['step_size'] * n_iter_per_epoch)
     
-    config = config(is_pretrain=True)
+    logger.info('>>>>>>>>>>>>>>>> Building Scheduler for Pre-training Stage')
 
     if config['training']['optimizer'] == 'cosine':
         lr_scheduler = CosineLRScheduler(
@@ -36,5 +36,8 @@ def build_scheduler(config, optimizer, n_iter_per_epoch):
             warmup_t=warmup_steps,
             t_in_epochs=False,
         )
+
+    logger.info(f'>>>>>>>>>>>>>>>> Created {config['training']['optimizer']} Scheduler for Pre-training Stage')
+
     return lr_scheduler
 
