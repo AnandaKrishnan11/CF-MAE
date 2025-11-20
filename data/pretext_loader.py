@@ -32,16 +32,16 @@ class CF_MAE_Dataset(Dataset):
 
         for folds in os.listdir(self.data_config['path']):
             if folds == 'SEN4FLOOD_A' or folds == 'SEN4FLOOD_B':
-                pre = os.listdir(os.path.join(self.data_config['path'],folds,'pre'))
-                post = os.listdir(os.path.join(self.data_config['path'],folds,'post'))
+                pre = os.listdir(os.path.join(self.data_config['PATH'],folds,'pre'))
+                post = os.listdir(os.path.join(self.data_config['PATH'],folds,'post'))
 
                 for pre_img,post_img in zip(pre,post):
                     pre_im = imread(pre_img)
                     post_im = imread(post_img)
                     pre_list.extend(pre), post_list.extend(post) = self.pre_transform(pre_im,type='sar'), self.post_transform(post_im, type='sar')
             else: 
-                pre = os.listdir(os.path.join(self.data_config['path'],folds,'pre'))
-                post = os.listdir(os.path.join(self.data_config['path'],folds,'post'))
+                pre = os.listdir(os.path.join(self.data_config['PATH'],folds,'pre'))
+                post = os.listdir(os.path.join(self.data_config['PATH'],folds,'post'))
 
                 for pre_img,post_img in zip(pre,post):
                     pre_im = imread(pre_img)

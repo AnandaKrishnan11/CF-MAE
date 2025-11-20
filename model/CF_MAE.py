@@ -1,3 +1,9 @@
+#-----------------------------------------------
+# References:
+# mae : https://github.com/facebookresearch/mae.git
+# timm: https://github.com/rwightman/pytorch-image-models/tree/master/timm
+#-----------------------------------------------
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -264,7 +270,7 @@ class TemporalGeoMAE_ConvDecoder(nn.Module):
         # Add position embeddings
         if hasattr(self.encoder, 'pos_embed'):
             x = x + self.encoder.pos_embed[:, 1:, :]  # Skip cls token
-        
+
         # Random masking
         x, mask, ids_restore = self.random_masking(x, mask_ratio)
         

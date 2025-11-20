@@ -5,6 +5,7 @@ import random
 import rasterio
 from skimage.measure import shannon_entropy
 from skimage import io
+from skimage.io import imread
 from rasterio.mask import mask
 from rasterio.windows import Window
 from rasterio.warp import reproject, calculate_default_transform, Resampling
@@ -205,59 +206,101 @@ class GEO_PreProcessing:
             self.global_counter = counter
             
     def Mean_Std(self, FOLDER_PATH, no_channels):
-        '''
-        Args:
-            FOLDER_PATH(str): Provide the directory consisting of images
-            no_channels(list): List of channel indices to read
-        
-        Returns:
-            None
-        '''
-        try:
-            pre_list, post_list = [], []
+            '''
+            Computing the Mean and Std for the whole dataset
 
-            pre_sum = np.zeros(3)
-            pre_sum_sq = np.zeros(3)
-            pre_pixel_count = 0
+            Args:
+                FOLDER_PATH(str): Provide the directory consisting of images
+                no_channels(list): List of channel indices to read
+            
+            Returns:
+                tuple: ((pre_mean, pre_std), (post_mean, post_std)) as numpy arrays, 
+                    or ((None, None), (None, None)) if no valid images
+            '''
 
-            post_sum = np.zeros(3)
-            post_sum_sq = np.zeros(3)
-            post_pixel_count = 0
+            try:
+                pre_list, post_list = [], []
 
-            for folds in os.listdir(FOLDER_PATH):
-                if folds == 'SEN4FLOOD_A' or folds == 'SEN4FLOOD_B':
-                    pre_collection = os.path.join(FOLDER_PATH, folds, 'pre')
-                    post_collection = os.path.join(FOLDER_PATH, folds, 'post')
-                    pre_list.extend(sorted(glob.glob(os.path.join(pre_collection, '*.*'))))
-                    post_list.extend(sorted(glob.glob(os.path.join(post_collection, '*.*'))))
-            print(f'[INFO] Found {len(pre_list)} pre-images and {len(post_list)} post-images')
+                pre_mean = np.zeros(len(no_channels))
+                pre_std = np.zeros(len(no_channels))
 
-            assert len(pre_list) == len(post_list), 'MISMATCH IN NUMBER OF FILES'
-            for preimg_name, postimg_name in zip(pre_list, post_list):
-                _, preimg = self.open(preimg_name, no_channels, transpose=True)
-                _, postimg = self.open(postimg_name, no_channels, transpose=True)
+                post_mean = np.zeros(len(no_channels))
+                post_std = np.zeros(len(no_channels))
 
-                pre_sum += np.sum(preimg, axis=(0, 1))      
-                pre_sum_sq += np.sum(preimg**2, axis=(0, 1)) 
-                pre_pixel_count += preimg.shape[0] * preimg.shape[1]
 
-                post_sum += np.sum(postimg, axis=(0, 1))      
-                post_sum_sq += np.sum(postimg**2, axis=(0, 1)) 
-                post_pixel_count += postimg.shape[0] * postimg.shape[1]
+                for folds in os.listdir(FOLDER_PATH):
+                    if folds == 'SEN4FLOOD_A' or folds == 'SEN4FLOOD_B':
+                        print(f'Collecting Images from-----{folds}')
+                        pre_collection = os.path.join(FOLDER_PATH, folds, 'pre')
+                        post_collection = os.path.join(FOLDER_PATH, folds, 'post')
 
-            pre_mean = pre_sum / pre_pixel_count
-            pre_std = np.sqrt(pre_sum_sq / pre_pixel_count - pre_mean**2)
-            post_mean = post_sum / post_pixel_count
-            post_std = np.sqrt(post_sum_sq / post_pixel_count - post_mean**2)
+                        pre_list.extend(sorted(glob.glob(os.path.join(pre_collection, '*.*'))))
+                        post_list.extend(sorted(glob.glob(os.path.join(post_collection, '*.*'))))
+                        
+                    else:
+                        continue
+                        
+                print(f'[INFO] Found {len(pre_list)} pre-images and {len(post_list)} post-images')
 
-            print(f'[PRE_MEAN]-----{pre_mean}')
-            print(f'[PRE_STD]-----{pre_std}')
-            print(f'[POST_MEAN]-----{post_mean}')
-            print(f'[POST_STD]-----{post_std}')
-            return None
-        except Exception as e:
-            print(f'[ERROR] Exception occurred: {str(e)}')
-            return None
+                assert len(pre_list) == len(post_list), 'MISMATCH IN NUMBER OF FILES'
+
+                skipped_count = 0
+                processed_count = 0
+
+                for preimg_name, postimg_name in tqdm(zip(pre_list, post_list),total=len(pre_list)):
+                    preimg = imread(preimg_name)
+                    postimg = imread(postimg_name)
+
+                    has_invalid_pre = np.any(~np.isfinite(preimg))
+                    has_invalid_post = np.any(~np.isfinite(postimg))
+
+                    if has_invalid_pre or has_invalid_post:
+                        skipped_count += 1
+                        print(f'\n[WARNING] Skipping image pair {skipped_count} due to invalid values:')
+                        
+                        if has_invalid_pre:
+                            print(f'  PRE-IMAGE:  {preimg_name}')
+                            print(f'    - NaN count: {np.isnan(preimg).sum()}')
+                            print(f'    - Inf count: {np.isinf(preimg).sum()}')
+                        
+                        if has_invalid_post:
+                            print(f'  POST-IMAGE: {postimg_name}')
+                            print(f'    - NaN count: {np.isnan(postimg).sum()}')
+                            print(f'    - Inf count: {np.isinf(postimg).sum()}')
+                        
+                        continue 
+                    
+                    pre_mean += np.mean(preimg, axis=(0, 1))      
+                    pre_std += np.std(preimg, axis=(0, 1)) 
+
+                    post_mean += np.mean(postimg, axis=(0, 1))      
+                    post_std += np.std(postimg, axis=(0, 1)) 
+
+                    processed_count += 1
+
+                print(f'\n[INFO] Processed {processed_count} valid image pairs')
+                print(f'[INFO] Skipped {skipped_count} image pairs with invalid values')
+
+                # Calculate statistics
+                pre_main_mean = pre_mean / processed_count
+                pre_main_std = pre_std  / processed_count
+
+                post_main_mean = post_mean / processed_count
+                post_main_std = post_std / processed_count
+
+                print(f'\n[PRE_MEAN]-----{pre_main_mean}')
+                print(f'[PRE_STD]-----{pre_main_std}')
+
+                print(f'[POST_MEAN]-----{post_main_mean}')
+                print(f'[POST_STD]-----{post_main_std}')
+
+                return None
+
+            except Exception as e:
+                print(f'[ERROR] Exception occurred: {str(e)}')
+                import traceback
+                traceback.print_exc()
+                return None
 
     def split_sar_ratio(self,img):
 

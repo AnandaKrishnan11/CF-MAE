@@ -4,7 +4,7 @@
 
 pretrain:
   dataset_name: PANDORA   # Paired Natural Disaster Observations for Reconstruction and Analysis
-  path: E:\pretext_data
+  PATH: E:\pretext_data
   image_size: 224
   num_channels: 3
 
@@ -19,19 +19,19 @@ pretrain:
   modalities:
     PRE:
       OPTICAL:
-        mean: []
-        std: []
+        mean: [89.53308483, 91.90585991, 72.68601714]
+        std: [26.02605953, 22.89198987, 21.41148246]
       SAR:
-        mean: [-10.06004422, -17.21891063, 0.58428808]
-        std:  [ 4.22810151,   4.96386208, 7.29221064]
+        mean: [-10.06004433, -17.2189107,    0.58428808]
+        std:  [ 3.2242846,  3.6404165,  0.80442163]
 
     POST:
       OPTICAL:
-        mean: []
-        std: []
+        mean: [88.64208643, 90.80364261, 72.86729786]
+        std: [23.95943428, 21.25911327, 19.86496781]
       SAR:
-        mean: [-12.03841632, -19.97186548, 0.59826662]
-        std:  [ 5.39673854,   6.48607654, 6.01571135]
+        mean: [-12.03841647, -19.97186764,   0.59826662]
+        std:  [ 4.01822834, 4.7711841,  0.65049576]
 
 
 #FINETUNE \ DOWNSTREAM DATASETS

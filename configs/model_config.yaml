@@ -16,8 +16,9 @@ pretrain:
       embed_dim: 768
       num_layers: 12          
       num_heads: 12
+      mlp_ratio: 4.
       QKV_bais: True
-
+      drop_out: 0.
       drop_path: 0.1 # stochastic depth 
 
     decoder:
