@@ -2,62 +2,70 @@
 # PRETEXT / DOMAIN-BASED PRETRAINING DATASETS
 # ====================================================================
 
-pretrain:
-  dataset_name: PANDORA   # Paired Natural Disaster Observations for Reconstruction and Analysis
+PRETRAIN:
+  DATASET_NAME: PANDORA   # Paired Natural Disaster Observations for Reconstruction and Analysis
   PATH: E:\pretext_data
-  image_size: 224
-  num_channels: 3
+  IMAGE_SIZE: 224
+  NUM_CHANNELS: 3
 
-  batch_size: 200
-  num_workers: 8
-  pin_memory: True
-  shuffle: True
+  BATCH_SIZE: 128
+  NUM_WORKERS: 8
+  PIN_MEMORY: True
+  SHUFFLE: True
 
-  total_samples: 376634
+  # Auxiliary data infos
+  TOTAL_SAMPLES: 376634
+  OPTICAL_SAMPLES: 213550
+  SAR_SAMPLES: 163078
+  TOTAL_SIZE:
 
   # INPUT MODALITIES
-  modalities:
+  MODALITIES:
     PRE:
+      # Normalization stats
       OPTICAL:
-        mean: [89.53308483, 91.90585991, 72.68601714]
-        std: [26.02605953, 22.89198987, 21.41148246]
+        MEAN: [89.53308483, 91.90585991, 72.68601714]
+        STD: [26.02605953, 22.89198987, 21.41148246]
       SAR:
-        mean: [-10.06004433, -17.2189107,    0.58428808]
-        std:  [ 3.2242846,  3.6404165,  0.80442163]
+        MEAN: [-10.06004433, -17.2189107, 0.58428808]
+        STD:  [3.2242846, 3.6404165, 0.80442163]
 
     POST:
       OPTICAL:
-        mean: [88.64208643, 90.80364261, 72.86729786]
-        std: [23.95943428, 21.25911327, 19.86496781]
+        MEAN: [88.64208643, 90.80364261, 72.86729786]
+        STD: [23.95943428, 21.25911327, 19.86496781]
       SAR:
-        mean: [-12.03841647, -19.97186764,   0.59826662]
-        std:  [ 4.01822834, 4.7711841,  0.65049576]
+        MEAN: [-12.03841647, -19.97186764, 0.59826662]
+        STD:  [4.01822834, 4.7711841, 0.65049576]
 
+# ====================================================================
+# FINETUNE / DOWNSTREAM DATASETS
+# ====================================================================
 
-#FINETUNE \ DOWNSTREAM DATASETS
-
-#Sentinel-2 Wildfire Change Detection (S2-WCD)
+# Sentinel-2 Wildfire Change Detection (S2-WCD)
 S2-WCD:
+  PATH:
+  IMAGE_SIZE: 224
+  NO_CHANNELS: 3
 
-        image_size : 224
+  BATCH_SIZE:
+  NUM_WORKERS: 8
+  PIN_MEMORY: True
+  SHUFFLE: True
 
-        no_channels : 3
+  # Auxiliary data infos
+  TOTAL_SAMPLES:
+  DATA_MODALITY: optical
+  TOTAL_SIZE:
 
-        batch_size : 
+  # Normalization stats
+  PRE:
+    MEAN: []
+    STD: []
+  POST:
+    MEAN: []
+    STD: []
 
-        learning_rate : 0.001
-
-        total_no_data : 
-
-        PRE :
-            MEAN : []
-            STD : []
-        POST : 
-            MEAN : []
-            STD : []
-
-#LANDSLIDE
-#DAMAGE ASSESSMENT
-#FLOODING
-
-
+# LANDSLIDE
+# DAMAGE ASSESSMENT
+# FLOODING

@@ -30,7 +30,7 @@ class CF_MAE_Dataset(Dataset):
         pre_list = []
         post_list = []
 
-        for folds in os.listdir(self.data_config['path']):
+        for folds in os.listdir(self.data_config['PATH']):
             if folds == 'SEN4FLOOD_A' or folds == 'SEN4FLOOD_B':
                 pre = os.listdir(os.path.join(self.data_config['PATH'],folds,'pre'))
                 post = os.listdir(os.path.join(self.data_config['PATH'],folds,'post'))

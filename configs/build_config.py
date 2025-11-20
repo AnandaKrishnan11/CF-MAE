@@ -8,7 +8,7 @@ def data_config(is_pretrain=True):
         data_config = yaml.load(d, Loader=FullLoader)
 
         if is_pretrain:
-            return data_config['pretrain']
+            return data_config['PRETRAIN']
         else:
             return data_config['finetune']
         
@@ -18,7 +18,7 @@ def model_config(is_pretrain=True):
         model_config = yaml.load(m, Loader=FullLoader)
 
         if is_pretrain:
-            return model_config['pretrain']
+            return model_config['PRETRAIN']
         else:
             return model_config['finetune']
         

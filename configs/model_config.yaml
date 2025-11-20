@@ -2,58 +2,56 @@
 # PRETEXT / DOMAIN-BASED PRETRAINING MODEL CONFIGURATION
 # ====================================================================
 
-pretrain:
+PRETRAIN:
 
-  model:
-    name: CF-MAE # Change-Fused Masked Autoencoder
-    total_params: ~97M
+  MODEL:
+    NAME: CF-MAE   # Change-Fused Masked Autoencoder
+    TOTAL_PARAMS: ~97M
 
-    encoder:
-      backbone: vit_base_patch16_224
-      img_size: 224
-      in_channels: 3
-      patch_size: 16
-      embed_dim: 768
-      num_layers: 12          
-      num_heads: 12
-      mlp_ratio: 4.
-      QKV_bais: True
-      drop_out: 0.
-      drop_path: 0.1 # stochastic depth 
+    ENCODER:
+      BACKBONE: vit_base_patch16_224
+      IMG_SIZE: 224
+      IN_CHANNELS: 3
+      PATCH_SIZE: 16
+      EMBED_DIM: 768
+      NUM_LAYERS: 12
+      NUM_HEADS: 12
+      MLP_RATIO: 4.
+      QKV_BAIS: True
+      DROP_OUT: 0.
+      DROP_PATH: 0.1  # stochastic depth
 
-    decoder:
+    DECODER:
 
-    masking:
-      mask_ratio: 0.75             
-      mask_strategy: random         
+    MASKING:
+      MASK_RATIO: 0.75
+      MASK_STRATEGY: random
 
-    fusion:
-      type: change fusion         
-      modalities: [optical, sar]    
+    FUSION:
+      TYPE: change fusion
+      MODALITIES: [optical, sar]
 
     # TRAINING CONFIG [ Based from SimMIM codebase - https://github.com/microsoft/SimMIM ]
-    training:
-      epochs: 200
-      warmup_epochs: 20
-      auto_Resume: True
-      weight_decay: 0.05
-      learning_rate: 5e-4
-      warmup_lr: 5e-7
-      min_lr: 5e-6
+    TRAINING:
+      EPOCHS: 200
+      WARMUP_EPOCHS: 20
+      AUTO_RESUME: True
+      WEIGHT_DECAY: 0.05
+      LEARNING_RATE: 5e-4
+      WARMUP_LR: 5e-7
+      MIN_LR: 5e-6
 
-      #Optimizer
-      optimizer: adamw
-      eps: 1e-8
-      betas: (0.9, 0.999)
-      momentum: 0.9
-      
-      #Scheduler
-      scheduler: cosine
+      # Optimizer
+      OPTIMIZER: adamw
+      EPS: 1e-8
+      BETAS: (0.9, 0.999)
+      MOMENTUM: 0.9
 
-      step_size: 30 #ONLY FOR STEP SCHEDULER
-      gamma: 0.1 #ONLY FOR STEP SCHEDULER
+      # Scheduler
+      SCHEDULER: cosine
 
-      #Path to save the trained CF-MAE
+      STEP_SIZE: 30   # ONLY FOR STEP SCHEDULER
+      GAMMA: 0.1      # ONLY FOR STEP SCHEDULER
+
+      # Path to save the trained CF-MAE
       PATH: ''
-
-
