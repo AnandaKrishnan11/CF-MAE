@@ -6,6 +6,7 @@ PRETRAIN:
 
   MODEL:
     NAME: 'CF-MAE'   # Change-Fused Masked Autoencoder
+    TYPE: 'MAE'
     TOTAL_PARAMS: ~97M
 
     ENCODER:
@@ -32,27 +33,27 @@ PRETRAIN:
       MODALITIES: [optical, sar]
 
     # TRAINING CONFIG [ Based from SimMIM codebase - https://github.com/microsoft/SimMIM ]
-    TRAINING:
-      START_EPOCH: 0
-      TOTAL_EPOCHS: 200
-      WARMUP_EPOCHS: 20
-      AUTO_RESUME: True
-      WEIGHT_DECAY: 0.05
-      LEARNING_RATE: 5e-4
-      WARMUP_LR: 5e-7
-      MIN_LR: 5e-6
+  TRAINING:
+    START_EPOCH: 0
+    TOTAL_EPOCHS: 200
+    WARMUP_EPOCHS: 20
+    AUTO_RESUME: True
+    WEIGHT_DECAY: 0.05
+    LEARNING_RATE: 5e-4
+    WARMUP_LR: 5e-7
+    MIN_LR: 5e-6
 
-      # Optimizer
-      OPTIMIZER: adamw
-      EPS: 1e-8
-      BETAS: (0.9, 0.999)
-      MOMENTUM: 0.9
+    # Optimizer
+    OPTIMIZER: adamw
+    EPS: 1e-8
+    BETAS: (0.9, 0.999)
+    MOMENTUM: 0.9
 
-      # Scheduler
-      SCHEDULER: cosine
+    # Scheduler
+    SCHEDULER: cosine
 
-      STEP_SIZE: 30   # ONLY FOR STEP SCHEDULER
-      GAMMA: 0.1      # ONLY FOR STEP SCHEDULER
+    STEP_SIZE: 30   # ONLY FOR STEP SCHEDULER
+    GAMMA: 0.1      # ONLY FOR STEP SCHEDULER
 
-      # Path to save the trained CF-MAE
-      CHECKPOINT_PATH: ''
+    # Path to save the trained CF-MAE
+    CHECKPOINT_PATH: ''
