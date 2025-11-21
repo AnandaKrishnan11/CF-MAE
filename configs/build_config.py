@@ -10,7 +10,7 @@ def data_config(is_pretrain=True):
         if is_pretrain:
             return data_config['PRETRAIN']
         else:
-            return data_config['finetune']
+            return data_config['FINETUNE']
         
 
 def model_config(is_pretrain=True):
@@ -20,7 +20,7 @@ def model_config(is_pretrain=True):
         if is_pretrain:
             return model_config['PRETRAIN']
         else:
-            return model_config['finetune']
+            return model_config['FINETUNE']
         
 
 def load_config(is_pretrain=True,type='data'):

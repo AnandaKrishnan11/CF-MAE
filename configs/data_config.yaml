@@ -8,7 +8,7 @@ PRETRAIN:
   IMAGE_SIZE: 224
   NUM_CHANNELS: 3
 
-  BATCH_SIZE: 128
+  BATCH_SIZE: 128 #Lower batch size is used due to GPU limitation. To overcome this, gradient accumulation strategy is used to mimic larger batch size training
   NUM_WORKERS: 8
   PIN_MEMORY: True
   SHUFFLE: True

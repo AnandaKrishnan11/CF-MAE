@@ -5,8 +5,8 @@
 PRETRAIN:
 
   MODEL:
-    NAME: 'CF-MAE'   # Change-Fused Masked Autoencoder
-    TYPE: 'MAE'
+    NAME: CF-MAE   # Change-Fused Masked Autoencoder
+    TYPE: MAE
     TOTAL_PARAMS: ~97M
 
     ENCODER:
@@ -43,6 +43,7 @@ PRETRAIN:
     WARMUP_LR: 5e-7
     MIN_LR: 5e-6
     GRAD_CLIP: 5.0
+    ACCUMULATION_STEPS: 8 #Making an effective batch size of 1024 (128(Original batch size)*ACCUMULATION_STEPS = 1024)
 
     PRINT_FREQ: 10
 

@@ -1,7 +1,6 @@
 import torch
 from timm.utils import AverageMeter
 
-
 from model.build_model import build_model
 from data.pretext_loader import build_loader 
 from configs.build_config import load_config
@@ -14,10 +13,7 @@ import os
 import time
 import tqdm
 import datetime
-import argparse
 
-
-       
 def main(config):
       
       #Building config for model and data
@@ -70,21 +66,35 @@ def main(config):
       for epoch in tqdm(range(start_epoch,total_epochs),total=total_epochs):
             e_start = time.time()
 
-            for idx,(pre,post) in enumerate(train_loader):  
+            for idx,(pre,post) in enumerate(train_loader,start=1):  
                   b_start = time.time()
-                  optimizer.zero_grad()        
                   pre.cuda()
                   post.cuda()
 
-                  loss = model(pre,post)# integrate loss function to the model
+                  loss = model(pre,post) #integrate loss function to the model
                   
-                  loss.backward()
-                  if model_config['TRAINING']['GRAD_CLIP']:
-                        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])       
+                  #Gradient Accumulation
+                  if model_config['TRAINING']['ACCUMULATION_STEPS']>1:
+                        loss = loss / model_config['TRAINING']['ACCUMULATION_STEPS']
+                        loss.backward()
+                        if model_config['TRAINING']['GRAD_CLIP']:
+                              grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])       
+                        else:
+                              grad_norm = get_grad_norm(model.parameters())  
+                        if idx % model_config['TRAINING']['ACCUMULATION_STEPS'] == 0:
+                              optimizer.step()
+                              optimizer.zero_grad()
+                              lr_scheduler.step_update(epoch * num_steps + idx)
                   else:
-                        grad_norm = get_grad_norm(model.parameters())  
-                  optimizer.step()
-                  lr_scheduler.step_update(epoch * num_steps + idx)
+                        optimizer.zero_grad()        
+                        loss.backward()
+                        if model_config['TRAINING']['GRAD_CLIP']:
+                              grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])       
+                        else:
+                              grad_norm = get_grad_norm(model.parameters())  
+                  
+                        optimizer.step()
+                        lr_scheduler.step_update(epoch * num_steps + idx)
 
                   torch.cuda.synchronize()
 
