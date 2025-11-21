@@ -1,4 +1,6 @@
 import torch
+from timm.utils import AverageMeter
+
 
 from model.build_model import build_model
 from data.pretext_loader import build_loader 
@@ -6,17 +8,13 @@ from configs.build_config import load_config
 from logger import create_logger
 from lr_scheduler import build_scheduler
 from optimizer import build_optimizer
+from utils import get_grad_norm
 
 import time
+import tqdm
+import datetime
 import argparse
 
-
-def argparses():
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--pre_datafolder",type=str, required=True)
-        parser.add_argument("--post_datafolder",type=str, required=True)
-
-        return parser.parse_args()
 
        
 def main(config):
@@ -30,6 +28,7 @@ def main(config):
       train_loader = build_loader(data_config,logger)
 
       logger.info(f"Creating model:{model_config['MODEL']['TYPE']} style--{model_config['MODEL']['NAME']}")
+      print(f"[INFO]---Creating model:{model_config['MODEL']['TYPE']} style--{model_config['MODEL']['NAME']}")
       model = build_model(model_config,logger,name = model_config['MODEL']['NAME'])
       model.cuda()
       logger.info(str(model))
@@ -50,17 +49,23 @@ def main(config):
             optimizer.load_state_dict(checkpoint["optimizer"])
             lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
             model_config['TRAINING']['START_EPOCH'] = checkpoint["epoch"] + 1
-            print(f"Resuming training at epoch: {model_config['TRAINING']['START_EPOCH']}")
+            print(f"Restarting training at epoch: {model_config['TRAINING']['START_EPOCH']}")
 
       #train
       start_epoch = model_config['TRAINING']['START_EPOCH']
       total_epochs  = model_config['TRAINING']['TOTAL_EPOCHS']
       num_steps = len(train_loader)
 
+      batch_time = AverageMeter()
+      loss_meter = AverageMeter()
+      norm_meter = AverageMeter()
+
       model.train()
-      for epochs in range(start_epoch,total_epochs):
+      for epoch in tqdm(range(start_epoch,total_epochs),total=total_epochs):
+            e_start = time.time()
 
             for idx,(pre,post) in enumerate(train_loader):  
+                  b_start = time.time()
                   optimizer.zero_grad()        
                   pre.cuda()
                   post.cuda()
@@ -68,34 +73,38 @@ def main(config):
                   loss = model(pre,post)# integrate loss function to the model
                   
                   loss.backward()
+                  if model_config['TRAINING']['GRAD_CLIP']:
+                        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])       
+                  else:
+                        grad_norm = get_grad_norm(model.parameters())  
                   optimizer.step()
-                  lr_scheduler.step_update(epochs * num_steps + idx)
+                  lr_scheduler.step_update(epoch * num_steps + idx)
 
-            torch.cuda.synchronize()
+                  torch.cuda.synchronize()
 
+                  loss_meter.update(loss.items(),n=pre.size(0))
+                  norm_meter.update(grad_norm)
+                  batch_time.update(b_start - time.time())
 
-                  
+            if idx % model_config['TRAINING']['PRINT_FREQ'] == 0:
+                  lr = optimizer.param_groups[0]['lr']
+                  memory_used = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
+                  etas = batch_time.avg * (num_steps - idx)
+                  logger.info(
+                  f'Train: [{epoch}/{model_config['TRAINING']['TOTAL_EPOCHS']}][{idx}/{num_steps}]\t'
+                  f'eta {datetime.timedelta(seconds=int(etas))} lr {lr:.6f}\t'
+                  f'time {batch_time.val:.4f} ({batch_time.avg:.4f})\t'
+                  f'loss {loss_meter.val:.4f} ({loss_meter.avg:.4f})\t'
+                  f'grad_norm {norm_meter.val:.4f} ({norm_meter.avg:.4f})\t'
+                  f'mem {memory_used:.0f}MB')
 
-                  
-
-
-
-      #epoch  learning rate  loss  time
-
-
-
-      
-
-            
-            
-
-
+            epoch_time = time.time() - e_start
+            logger.info(f"EPOCH {epoch} training takes {datetime.timedelta(seconds=int(epoch_time))}")
+            print(f"[EPOCH]---{epoch}|[TIME]---{datetime.timedelta(seconds=int(epoch_time))}|[LOSS]---{loss_meter.avg:.4f}")
+                      
 
 if __name__ == "__main__":
-
-    args = argparses()
-
-    main()
+      main()
     
 
                         
