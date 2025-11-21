@@ -10,6 +10,7 @@ from lr_scheduler import build_scheduler
 from optimizer import build_optimizer
 from utils import get_grad_norm
 
+import os
 import time
 import tqdm
 import datetime
@@ -25,8 +26,6 @@ def main(config):
 
       logger = create_logger(data_config, dist_rank=0, name='pretrain_logger')
       
-      train_loader = build_loader(data_config,logger)
-
       logger.info(f"Creating model:{model_config['MODEL']['TYPE']} style--{model_config['MODEL']['NAME']}")
       print(f"[INFO]---Creating model:{model_config['MODEL']['TYPE']} style--{model_config['MODEL']['NAME']}")
       model = build_model(model_config,logger,name = model_config['MODEL']['NAME'])
@@ -39,17 +38,24 @@ def main(config):
       print(f"[INFO]----Model initialized with {n_parameters} number of paramter")
       logger.info(f"number of params: {n_parameters}")
 
+      train_loader = build_loader(data_config,logger)
+
+      print(f"[INFO]----Total number of Images used {data_config['TOTAL_SAMPLES']}")
+      print(f"[INFO]----Image size {data_config['IMAGE_SIZE']}")
+      print(f"[INFO]----Image size {data_config['NUM_CHANNELS']}")
+      print(f"[INFO]----Batch size used {data_config['BATCH_SIZE']}")
+
       lr_scheduler = build_scheduler(config,logger, optimizer,n_iter_per_epoch=len(train_loader))
 
       #Resume model training
       if model_config['TRAINING']['AUTO_RESUME'] and model_config['TRAINING']['CHECKPOINT_PATH'].exists():
-            print(f"Resuming training from checkpoint: {model_config['TRAINING']['CHECKPOINT_PATH']}")
+            print(f"[INFO]----Resuming training from checkpoint: {model_config['TRAINING']['CHECKPOINT_PATH']}")
             checkpoint = torch.load(model_config['TRAINING']['CHECKPOINT_PATH'], map_location="cpu")
             model.load_state_dict(checkpoint["model"])
             optimizer.load_state_dict(checkpoint["optimizer"])
             lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
             model_config['TRAINING']['START_EPOCH'] = checkpoint["epoch"] + 1
-            print(f"Restarting training at epoch: {model_config['TRAINING']['START_EPOCH']}")
+            print(f"[INFO]----Restarting training at epoch: {model_config['TRAINING']['START_EPOCH']}")
 
       #train
       start_epoch = model_config['TRAINING']['START_EPOCH']
@@ -85,6 +91,11 @@ def main(config):
                   loss_meter.update(loss.items(),n=pre.size(0))
                   norm_meter.update(grad_norm)
                   batch_time.update(b_start - time.time())
+            
+            save_state = {'model': model.state_dict(),'optimizer': optimizer.state_dict(), 'lr_scheduler': lr_scheduler.state_dict(),'epoch': epoch}
+            torch.save(save_state,os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth'))
+            model_config['TRAINING']['CHECKPOINT_PATH'] = os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth')
+            logger.info(f"{model_config['TRAINING']['CHECKPOINT_PATH']} saved !!!")
 
             if idx % model_config['TRAINING']['PRINT_FREQ'] == 0:
                   lr = optimizer.param_groups[0]['lr']
@@ -100,7 +111,7 @@ def main(config):
 
             epoch_time = time.time() - e_start
             logger.info(f"EPOCH {epoch} training takes {datetime.timedelta(seconds=int(epoch_time))}")
-            print(f"[EPOCH]---{epoch}|[TIME]---{datetime.timedelta(seconds=int(epoch_time))}|[LOSS]---{loss_meter.avg:.4f}")
+            print(f"[INFO][EPOCH]---{epoch}|[TIME]---{datetime.timedelta(seconds=int(epoch_time))}|[LOSS]---{loss_meter.avg:.4f}")
                       
 
 if __name__ == "__main__":

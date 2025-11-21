@@ -4,6 +4,7 @@
 # --------------------------------------------------------
 
 import torch
+import os 
 
 def get_grad_norm(parameters, norm_type=2):
     if isinstance(parameters, torch.Tensor):
