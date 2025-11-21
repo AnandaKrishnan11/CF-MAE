@@ -19,66 +19,42 @@ def argparses():
         return parser.parse_args()
 
        
-def main(
-        pre_datafolder,
-        post_datafolder,
-        epochs=100,
-        img_size= 224,
-        patch_size= 16,
-        in_channels= 3,
-        encoder_name= 'vit_base_patch16_224',
-        encoder_embed_dim= 768,
-        decoder_embed_dim = 512,
-        mask_ratio= 0.75
-        ):
+def main(config):
+      
+      #Building config for model and data
+      data_config = load_config(is_pretrain=True,type='data')
+      model_config = load_config(is_pretrain=True,type='model')
+
+      logger = create_logger(data_config, dist_rank=0, name='pretrain_logger')
+      
+      train_loader = build_loader(data_config,logger)
+
+      logger.info(f"Creating model:{config.MODEL.TYPE}/{config.MODEL.NAME}")
+      model = build_model(model_config,logger,name = model_config['MODEL']['NAME'])
+      model.cuda()
+      logger.info(str(model))
+
+      optimizer = build_optimizer(model_config,model,logger,is_pretrain=True)
+
+      n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+      logger.info(f"number of params: {n_parameters}")
+
+      lr_scheduler = build_scheduler(config,logger, optimizer,n_iter_per_epoch=len(train_loader))
 
 
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+      if model_config['TRAINING']['AUTO_RESUME'] and model_config['TRAINING']['CHECKPOINT_PATH'].exists():
+            print(f"Resuming training from checkpoint: {model_config['TRAINING']['CHECKPOINT_PATH']}")
+            checkpoint = torch.load(model_config['TRAINING']['CHECKPOINT_PATH'], map_location="cpu")
+            model.load_state_dict(checkpoint["model"])
+            optimizer.load_state_dict(checkpoint["optimizer"])
+            lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
+            model_config['TRAINING']['START_EPOCH'] = checkpoint["epoch"] + 1
 
-        model = build_model(config=load_config,name='CF_MAE')
-        
-        model.to(device)
-
-        train_loader = build_loader(config=load_config,distributed=False)
+      else:
+           sync_model(log_dir, model) #CHECK WHAT THIS DOES
             
-        model.train()
-        for i in range(1,epochs+1):
-                
-                start_time = time.time()
-                t_loss = 0
+            
 
-                
-                for images in train_loader:
-                        
-                        pre,post = images
-
-                        pre.to(device)
-                        post.to(device)
-
-                        out = model(pre,post)
-
-                        loss = model.compute_loss(
-                                img_post = post,
-                                pred_post = out['pred_post'],
-                                mask_post = out['mask_post'],
-                                change_logits = out['change_logits'])
-                        
-                        t_loss += loss['loss_recon'].item()
-
-                        loss = loss['loss_recon']
-
-
-
-                        optimizer.zero_grad()
-                        loss.backward()
-                        optimizer.step()
-
-                end_time = time.time()
-
-                print(f'[EPOCHS-{i}]----[LOSS-{t_loss}]----[TIME-{start_time-end_time}]---------------------------------------')
-
-        return None
-                
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@
 PRETRAIN:
 
   MODEL:
-    NAME: CF-MAE   # Change-Fused Masked Autoencoder
+    NAME: 'CF-MAE'   # Change-Fused Masked Autoencoder
     TOTAL_PARAMS: ~97M
 
     ENCODER:
@@ -33,7 +33,8 @@ PRETRAIN:
 
     # TRAINING CONFIG [ Based from SimMIM codebase - https://github.com/microsoft/SimMIM ]
     TRAINING:
-      EPOCHS: 200
+      START_EPOCH: 0
+      TOTAL_EPOCHS: 200
       WARMUP_EPOCHS: 20
       AUTO_RESUME: True
       WEIGHT_DECAY: 0.05
@@ -54,4 +55,4 @@ PRETRAIN:
       GAMMA: 0.1      # ONLY FOR STEP SCHEDULER
 
       # Path to save the trained CF-MAE
-      PATH: ''
+      CHECKPOINT_PATH: ''
