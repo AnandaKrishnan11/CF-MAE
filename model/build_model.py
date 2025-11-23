@@ -1,6 +1,6 @@
 from model import CF_MAE
-from terratorch.registry import BACKBONE_REGISTRY
-from transformers import AutoModel
+#from terratorch.registry import BACKBONE_REGISTRY
+#from transformers import AutoModel
 
 def build_model(config,logger,name='CF_MAE'):
 

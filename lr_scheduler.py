@@ -21,8 +21,8 @@ def build_scheduler(config, logger, optimizer, n_iter_per_epoch):
             optimizer,
             t_initial=num_steps,
             t_mul=1.,
-            lr_min=config['TRAINING']['MIN_LR'],
-            warmup_lr_init=config['TRAINING']['WARMUP_LR'],
+            lr_min=float(config['TRAINING']['MIN_LR']),
+            warmup_lr_init=float(config['TRAINING']['WARMUP_LR']),
             warmup_t=warmup_steps,
             cycle_limit=1,
             t_in_epochs=False,
@@ -31,8 +31,8 @@ def build_scheduler(config, logger, optimizer, n_iter_per_epoch):
         lr_scheduler = StepLRScheduler(
             optimizer,
             decay_t=decay_steps,
-            decay_rate=config['TRAINING']['GAMMA'],
-            warmup_lr_init=config['TRAINING']['WARMUP_LR'],
+            decay_rate=float(config['TRAINING']['GAMMA']),
+            warmup_lr_init=float(config['TRAINING']['WARMUP_LR']),
             warmup_t=warmup_steps,
             t_in_epochs=False,
         )

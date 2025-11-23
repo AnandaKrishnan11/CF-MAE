@@ -3,7 +3,7 @@ from timm.utils import AverageMeter
 
 from model.build_model import build_model
 from data.pretext_loader import build_loader 
-from configs.build_config import load_config
+from configs.build_config import load_config,write_config
 from logger import create_logger
 from lr_scheduler import build_scheduler
 from optimizer import build_optimizer
@@ -20,7 +20,8 @@ def main(config):
       data_config = load_config(is_pretrain=True,type='data')
       model_config = load_config(is_pretrain=True,type='model')
 
-      logger = create_logger(data_config, dist_rank=0, name='pretrain_logger')
+      output_dir = data_config['PATH']
+      logger = create_logger(output_dir, dist_rank=0, name='pretrain_logger')
       
       logger.info(f"Creating model:{model_config['MODEL']['TYPE']} style--{model_config['MODEL']['NAME']}")
       print(f"[INFO]---Creating model:{model_config['MODEL']['TYPE']} style--{model_config['MODEL']['NAME']}")
@@ -71,7 +72,7 @@ def main(config):
                   pre.cuda()
                   post.cuda()
 
-                  loss = model(pre,post) #integrate loss function to the model
+                  loss = model(pre,post)
                   
                   #Gradient Accumulation
                   if model_config['TRAINING']['ACCUMULATION_STEPS']>1:
@@ -105,6 +106,7 @@ def main(config):
             save_state = {'model': model.state_dict(),'optimizer': optimizer.state_dict(), 'lr_scheduler': lr_scheduler.state_dict(),'epoch': epoch}
             torch.save(save_state,os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth'))
             model_config['TRAINING']['CHECKPOINT_PATH'] = os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth')
+            write_config(config=model_config,type="model")
             logger.info(f"{model_config['TRAINING']['CHECKPOINT_PATH']} saved !!!")
 
             if idx % model_config['TRAINING']['PRINT_FREQ'] == 0:

@@ -146,7 +146,7 @@ class UpsampleBlock(nn.Module):
 
 class TemporalGeoMAE_ConvDecoder(nn.Module):
     """
-    Temporal MAE with CONVOLUTIONAL decoder for better reconstruction
+    Temporal MAE with CONVOLUTIONAL decoder 
     """
     
     def __init__(
@@ -209,13 +209,6 @@ class TemporalGeoMAE_ConvDecoder(nn.Module):
             img_size=img_size,
             patch_size=patch_size,
             in_channels=in_channels,
-        )
-        
-        # Change detection head
-        self.change_classifier = nn.Sequential(
-            nn.Linear(encoder_embed_dim, encoder_embed_dim // 2),
-            nn.GELU(),
-            nn.Linear(encoder_embed_dim // 2, 2),
         )
         
         self.initialize_weights()
@@ -314,19 +307,12 @@ class TemporalGeoMAE_ConvDecoder(nn.Module):
         # CONVOLUTIONAL DECODE (returns full image, not patches)
         pred_post = self.decoder(z_dec, ids_restore_post, self.mask_token)
         
-        # Change detection
-        z_diff_pooled = z_diff.mean(dim=1)
-        change_logits = self.change_classifier(z_diff_pooled)
+        #Computing loss
+        loss = self.compute_loss(img_post,pred_post,mask_post)
         
-        return {
-            'pred_post': pred_post,  # (B, C, H, W)
-            'mask_post': mask_post,
-            'change_logits': change_logits,
-            'z_pre': z_pre,
-            'z_post': z_post,
-            'z_diff': z_diff,
-        }
+        return loss
     
+
     def patchify(self, imgs):
         """
         imgs: (B, C, H, W)
@@ -344,7 +330,6 @@ class TemporalGeoMAE_ConvDecoder(nn.Module):
         img_post: torch.Tensor,
         pred_post: torch.Tensor,
         mask_post: torch.Tensor,
-        change_logits: torch.Tensor
     ):
         """
         Compute loss for convolutional decoder

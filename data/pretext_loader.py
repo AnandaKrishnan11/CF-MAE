@@ -38,7 +38,10 @@ class CF_MAE_Dataset(Dataset):
                 for pre_img,post_img in zip(pre,post):
                     pre_im = imread(pre_img)
                     post_im = imread(post_img)
-                    pre_list.extend(pre), post_list.extend(post) = self.pre_transform(pre_im,type='sar'), self.post_transform(post_im, type='sar')
+                    pre = self.pre_transform(pre_im,type='sar')
+                    pre_list.extend(pre)
+                    post = self.post_transform(post_im, type='sar')
+                    post_list.extend(post)
             else: 
                 pre = os.listdir(os.path.join(self.data_config['PATH'],folds,'pre'))
                 post = os.listdir(os.path.join(self.data_config['PATH'],folds,'post'))
@@ -46,7 +49,10 @@ class CF_MAE_Dataset(Dataset):
                 for pre_img,post_img in zip(pre,post):
                     pre_im = imread(pre_img)
                     post_im = imread(post_img)
-                    pre_list.extend(pre), post_list.extend(post) = self.pre_transform(pre_im,type='optical'), self.post_transform(post_im, type='optical')
+                    pre = self.pre_transform(pre_im,type='optical')
+                    pre_list.extend(pre)
+                    post = self.post_transform(post_im, type='optical')
+                    post_list.extend(post)
         return pre_list,post_list
 
     def pre_transform(self,x,type):

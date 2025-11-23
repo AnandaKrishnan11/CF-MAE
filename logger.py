@@ -11,9 +11,8 @@ from termcolor import colored
 
 
 @functools.lru_cache()
-def create_logger(config, dist_rank=0, name=''):
+def create_logger(output_dir, dist_rank=0, name=''):
 
-    output_dir = config['PATH']
     # create logger
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)

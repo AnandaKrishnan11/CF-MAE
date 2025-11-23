@@ -30,10 +30,10 @@ def build_pretrain_optimizer(config, model, logger):
     opt_lower = config['TRAINING']['OPTIMIZER']
     if opt_lower == 'sgd':
         optimizer = optim.SGD(parameters, momentum=config['TRAINING']['MOMENTUM'], nesterov=True,
-                              lr=config['TRAINING']['LEARNING_RATE'], weight_decay=config['TRAINING']['WEIGHT_DECAY'])
+                              lr=float(config['TRAINING']['LEARNING_RATE']), weight_decay=config['TRAINING']['WEIGHT_DECAY'])
     elif opt_lower == 'adamw':
-        optimizer = optim.AdamW(parameters, eps=config['TRAINING']['EPS'], betas=config['TRAINING']['BETAS'],
-                                lr=config['TRAINING']['LEARNING_RATE'], weight_decay=config['TRAINING']['WEIGHT_DECAY'])
+        optimizer = optim.AdamW(parameters, eps=float(config['TRAINING']['EPS']), betas=tuple(config['TRAINING']['BETAS']),
+                                lr=float(config['TRAINING']['LEARNING_RATE']), weight_decay=config['TRAINING']['WEIGHT_DECAY'])
 
     logger.info(f'>>>>>>>>>> Created {opt_lower} Optimizer for Pre-training Stage')
     return optimizer

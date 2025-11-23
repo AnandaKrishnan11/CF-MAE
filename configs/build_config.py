@@ -30,3 +30,14 @@ def load_config(is_pretrain=True,type='data'):
         return model_config(is_pretrain)
     else:
          raise NotImplementedError
+    
+
+def write_config(config,type='data'):
+    if type == 'data':
+        with open("configs/data_config.yaml", "w") as d:
+            yaml.safe_dump(config, d, sort_keys=False)
+    elif type == 'model':
+        with open("configs/model_config.yaml", "w") as m:
+            yaml.safe_dump(config, m, sort_keys=False)
+    else:
+         raise NotImplementedError
