@@ -4,6 +4,7 @@ from torchvision.transforms.functional import normalize
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
 
 import os
+import glob
 import numpy as np
 from skimage.io import imread
 
@@ -32,27 +33,27 @@ class CF_MAE_Dataset(Dataset):
 
         for folds in os.listdir(self.data_config['PATH']):
             if folds == 'SEN4FLOOD_A' or folds == 'SEN4FLOOD_B':
-                pre = os.listdir(os.path.join(self.data_config['PATH'],folds,'pre'))
-                post = os.listdir(os.path.join(self.data_config['PATH'],folds,'post'))
+                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif')))
+                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')))
 
                 for pre_img,post_img in zip(pre,post):
                     pre_im = imread(pre_img)
                     post_im = imread(post_img)
                     pre = self.pre_transform(pre_im,type='sar')
-                    pre_list.extend(pre)
+                    pre_list.append(pre)
                     post = self.post_transform(post_im, type='sar')
-                    post_list.extend(post)
+                    post_list.append(post)
             else: 
-                pre = os.listdir(os.path.join(self.data_config['PATH'],folds,'pre'))
-                post = os.listdir(os.path.join(self.data_config['PATH'],folds,'post'))
+                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif')))
+                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')))
 
                 for pre_img,post_img in zip(pre,post):
                     pre_im = imread(pre_img)
                     post_im = imread(post_img)
                     pre = self.pre_transform(pre_im,type='optical')
-                    pre_list.extend(pre)
+                    pre_list.append(pre)
                     post = self.post_transform(post_im, type='optical')
-                    post_list.extend(post)
+                    post_list.append(post)
         return pre_list,post_list
 
     def pre_transform(self,x,type):
@@ -81,11 +82,10 @@ class CF_MAE_Dataset(Dataset):
 # dataloader function
 def build_loader(config,logger,distributed = False):
 
-    config = config(is_pretrain=True,type='data')          
     dataset = CF_MAE_Dataset(config,logger)
     if distributed:
         sampler = DistributedSampler(dataset, num_replicas=dist.get_world_size(), rank=dist.get_rank(), shuffle=True)
         dataloader =  DataLoader(dataset,sampler=sampler,batch_size=config['BATCH_SIZE'],num_workers=config['NUM_WORKERS'],pin_memory=config['PIN_MEMORY'], drop_last=True)   
     else: 
-        dataloader =  DataLoader(dataset,shuffle=config['SHUFFLE'],batch_size=config['BATCH_SIZE'],num_workers=config['NUM_WORKERS'],pin_memory=True, drop_last=True)  
+        dataloader =  DataLoader(dataset,shuffle=config['SHUFFLE'],batch_size=config['BATCH_SIZE'],num_workers=config['NUM_WORKERS'],pin_memory=config['PIN_MEMORY'], drop_last=True)  
     return dataloader
