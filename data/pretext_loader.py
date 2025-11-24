@@ -59,20 +59,20 @@ class CF_MAE_Dataset(Dataset):
     def pre_transform(self,x,type):
         
         if type == 'sar':
-            x = torch.from_numpy(x).permute(2,0,1).float()
+            x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
             x = normalize(x,self.data_config['MODALITIES']['PRE']['SAR']['MEAN'],self.data_config['MODALITIES']['PRE']['SAR']['STD'],inplace=True)
         else:
-            x = torch.from_numpy(x).permute(2,0,1).float()
+            x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
             x = normalize(x,self.data_config['MODALITIES']['PRE']['OPTICAL']['MEAN'],self.data_config['MODALITIES']['PRE']['OPTICAL']['STD'],inplace=True)
         return x
 
     def post_transform(self,x,type):
 
         if type == 'sar':
-            x = torch.from_numpy(x).permute(2,0,1).float() 
+            x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
             x = normalize(x,self.data_config['MODALITIES']['POST']['SAR']['MEAN'],self.data_config['MODALITIES']['POST']['SAR']['STD'],inplace=True)
         else:
-            x = torch.from_numpy(x).permute(2,0,1).float()          
+            x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)         
             x = normalize(x,self.data_config['MODALITIES']['POST']['OPTICAL']['MEAN'],self.data_config['MODALITIES']['POST']['OPTICAL']['STD'],inplace=True)
         return x
     
