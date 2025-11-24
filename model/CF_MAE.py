@@ -18,7 +18,7 @@ class ConvDecoder(nn.Module):
     """
     def __init__(
         self,
-        decoder_embed_dim: int = 512,
+        decoder_embed_dim: int = 768,
         img_size: int = 224,
         patch_size: int = 16,
         in_channels: int = 3,
@@ -156,7 +156,7 @@ class TemporalGeoMAE_ConvDecoder(nn.Module):
         in_channels: int = 3,
         encoder_name: str = 'vit_base_patch16_224',
         encoder_embed_dim: int = 768,
-        decoder_embed_dim: int = 512,
+        decoder_embed_dim: int = 768,
         mask_ratio: float = 0.75,
     ):
         super().__init__()
@@ -354,7 +354,7 @@ class TemporalGeoMAE_ConvDecoder(nn.Module):
         
         # Pixel-wise MSE loss on masked regions
         loss_recon = (pred_post - img_post) ** 2
-        loss_recon = (loss_recon * mask_full).sum() / (mask_full.sum() + 1e-6)
+        loss_recon = (loss_recon * mask_full).sum() / (mask_full.sum() + 1e-5)
         
         loss_dict = {'loss_recon': loss_recon}
     

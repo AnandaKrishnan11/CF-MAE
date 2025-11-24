@@ -16,18 +16,17 @@ def build_scheduler(config, logger, optimizer, n_iter_per_epoch):
     
     logger.info('>>>>>>>>>>>>>>>> Building Scheduler for Pre-training Stage')
 
-    if config['TRAINING']['OPTIMIZER'] == 'cosine':
+    if config['TRAINING']['SCHEDULER'] == 'cosine':
         lr_scheduler = CosineLRScheduler(
             optimizer,
             t_initial=num_steps,
-            t_mul=1.,
             lr_min=float(config['TRAINING']['MIN_LR']),
             warmup_lr_init=float(config['TRAINING']['WARMUP_LR']),
             warmup_t=warmup_steps,
             cycle_limit=1,
             t_in_epochs=False,
         )
-    elif config['TRAINING']['OPTIMIZER'] == 'step':
+    elif config['TRAINING']['SCHEDULER'] == 'step':
         lr_scheduler = StepLRScheduler(
             optimizer,
             decay_t=decay_steps,
