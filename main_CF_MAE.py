@@ -20,15 +20,13 @@ def main():
       data_config = load_config(is_pretrain=True,type='data')
       model_config = load_config(is_pretrain=True,type='model')
 
-      device = 'cpu'
-
       output_dir = data_config['PATH']
       logger = create_logger(output_dir, dist_rank=0, name='pretrain_logger')
       
       logger.info(f"Creating model:{model_config['MODEL']['TYPE']} style--{model_config['MODEL']['NAME']}")
       print(f"[INFO]---Creating model:{model_config['MODEL']['TYPE']} style--{model_config['MODEL']['NAME']}")
       model = build_model(model_config,logger,name = model_config['MODEL']['NAME'])
-      model.to(device)
+      model.cuda()
       logger.info(str(model))
 
       optimizer = build_optimizer(model_config,model,logger,is_pretrain=True)
@@ -71,8 +69,8 @@ def main():
 
             for idx,(pre,post) in enumerate(train_loader,start=1):  
                   b_start = time.time()
-                  pre=pre.to(device)
-                  post=post.to(device)
+                  pre = pre.cuda(non_blocking=True)
+                  post = post.cuda(non_blocking=True)
 
                   loss = model(pre,post)
                   

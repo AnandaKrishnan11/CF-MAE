@@ -33,11 +33,8 @@ class CF_MAE_Dataset(Dataset):
 
         for folds in os.listdir(self.data_config['PATH']):
             if folds == 'SEN4FLOOD_A' or folds == 'SEN4FLOOD_B':
-                pre_ = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif')))
-                post_ = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')))
-
-                pre = pre_[:130]
-                post = post_[:130]
+                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif')))
+                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')))
 
                 for pre_img,post_img in zip(pre,post):
                     pre_im = imread(pre_img)
@@ -53,11 +50,8 @@ class CF_MAE_Dataset(Dataset):
                         postimg = self.post_transform(post_im, type='sar')
                         post_list.append(postimg)
             else: 
-                pre_ = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif')))
-                post_ = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')))
-
-                pre = pre_[:130]
-                post = post_[:130]
+                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif')))
+                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')))
 
                 for pre_img,post_img in zip(pre,post):
                     pre_im = imread(pre_img)
