@@ -5,7 +5,7 @@
 PRETRAIN:
 
   MODEL:
-    NAME: CF-MAE   # Change-Fused Masked Autoencoder
+    NAME: CF_MAE   # Change-Fused Masked Autoencoder
     TYPE: MAE
     TOTAL_PARAMS: ~97M
 
@@ -50,7 +50,7 @@ PRETRAIN:
     # Optimizer
     OPTIMIZER: adamw
     EPS: 1e-8
-    BETAS: (0.9, 0.999)
+    BETAS: [0.9, 0.999]
     MOMENTUM: 0.9
 
     # Scheduler

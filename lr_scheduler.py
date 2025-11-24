@@ -36,6 +36,6 @@ def build_scheduler(config, logger, optimizer, n_iter_per_epoch):
             warmup_t=warmup_steps,
             t_in_epochs=False,
         )
-    logger.info(f'>>>>>>>>>>>>>>>> Created {config['TRAINING']['OPTIMIZER']} Scheduler for Pre-training Stage')
+    logger.info(f">>>>>>>>>>>>>>>> Created {config['TRAINING']['OPTIMIZER']} Scheduler for Pre-training Stage")
     return lr_scheduler
 

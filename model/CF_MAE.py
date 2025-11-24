@@ -233,6 +233,10 @@ class TemporalGeoMAE_ConvDecoder(nn.Module):
             nn.init.constant_(m.weight, 1)
             nn.init.constant_(m.bias, 0)
     
+    @torch.jit.ignore
+    def no_weight_decay(self):
+        return {'pos_embed', 'cls_token'}
+    
     def random_masking(self, x, mask_ratio):
         """
         Perform random masking by per-sample shuffling.

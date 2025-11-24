@@ -39,10 +39,16 @@ class CF_MAE_Dataset(Dataset):
                 for pre_img,post_img in zip(pre,post):
                     pre_im = imread(pre_img)
                     post_im = imread(post_img)
-                    pre = self.pre_transform(pre_im,type='sar')
-                    pre_list.append(pre)
-                    post = self.post_transform(post_im, type='sar')
-                    post_list.append(post)
+                    has_invalid_pre = np.any(~np.isfinite(pre_im))
+                    has_invalid_post = np.any(~np.isfinite(post_im))
+
+                    if has_invalid_pre or has_invalid_post:
+                        continue
+                    else:
+                        preimg = self.pre_transform(pre_im,type='sar')
+                        pre_list.append(preimg)
+                        postimg = self.post_transform(post_im, type='sar')
+                        post_list.append(postimg)
             else: 
                 pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif')))
                 post = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')))
@@ -50,30 +56,56 @@ class CF_MAE_Dataset(Dataset):
                 for pre_img,post_img in zip(pre,post):
                     pre_im = imread(pre_img)
                     post_im = imread(post_img)
-                    pre = self.pre_transform(pre_im,type='optical')
-                    pre_list.append(pre)
-                    post = self.post_transform(post_im, type='optical')
-                    post_list.append(post)
+                    has_invalid_pre = np.any(~np.isfinite(pre_im))
+                    has_invalid_post = np.any(~np.isfinite(post_im))
+
+                    if has_invalid_pre or has_invalid_post:
+                        continue
+                    else:
+                        preimg = self.pre_transform(pre_im,type='optical')
+                        pre_list.append(preimg)
+                        postimg = self.post_transform(post_im, type='optical')
+                        post_list.append(postimg)
         return pre_list,post_list
 
     def pre_transform(self,x,type):
         
         if type == 'sar':
             x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
-            x = normalize(x,self.data_config['MODALITIES']['PRE']['SAR']['MEAN'],self.data_config['MODALITIES']['PRE']['SAR']['STD'],inplace=True)
+            if self.data_config['MODALITIES']['MIN_MAX']:
+                min_vals = x.amin(dim=(1, 2), keepdim=True)
+                max_vals = x.amax(dim=(1, 2), keepdim=True)
+                x = (x - min_vals) / (max_vals - min_vals + 1e-6)
+            else:
+                x = normalize(x,self.data_config['MODALITIES']['PRE']['SAR']['MEAN'],self.data_config['MODALITIES']['PRE']['SAR']['STD'],inplace=True)
         else:
             x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
-            x = normalize(x,self.data_config['MODALITIES']['PRE']['OPTICAL']['MEAN'],self.data_config['MODALITIES']['PRE']['OPTICAL']['STD'],inplace=True)
+            if self.data_config['MODALITIES']['MIN_MAX']:
+                min_vals = x.amin(dim=(1, 2), keepdim=True)
+                max_vals = x.amax(dim=(1, 2), keepdim=True)
+                x = (x - min_vals) / (max_vals - min_vals + 1e-6)
+            else:
+                x = normalize(x,self.data_config['MODALITIES']['PRE']['OPTICAL']['MEAN'],self.data_config['MODALITIES']['PRE']['OPTICAL']['STD'],inplace=True)
         return x
 
     def post_transform(self,x,type):
 
         if type == 'sar':
             x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
-            x = normalize(x,self.data_config['MODALITIES']['POST']['SAR']['MEAN'],self.data_config['MODALITIES']['POST']['SAR']['STD'],inplace=True)
+            if self.data_config['MODALITIES']['MIN_MAX']:
+                min_vals = x.amin(dim=(1, 2), keepdim=True)
+                max_vals = x.amax(dim=(1, 2), keepdim=True)
+                x = (x - min_vals) / (max_vals - min_vals + 1e-6)
+            else:
+                x = normalize(x,self.data_config['MODALITIES']['POST']['SAR']['MEAN'],self.data_config['MODALITIES']['POST']['SAR']['STD'],inplace=True)
         else:
             x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)         
-            x = normalize(x,self.data_config['MODALITIES']['POST']['OPTICAL']['MEAN'],self.data_config['MODALITIES']['POST']['OPTICAL']['STD'],inplace=True)
+            if self.data_config['MODALITIES']['MIN_MAX']:
+                min_vals = x.amin(dim=(1, 2), keepdim=True)
+                max_vals = x.amax(dim=(1, 2), keepdim=True)
+                x = (x - min_vals) / (max_vals - min_vals + 1e-6)
+            else:
+                x = normalize(x,self.data_config['MODALITIES']['POST']['OPTICAL']['MEAN'],self.data_config['MODALITIES']['POST']['OPTICAL']['STD'],inplace=True)
         return x
     
     def __len__(self):

@@ -21,6 +21,7 @@ PRETRAIN:
 
   # INPUT MODALITIES
   MODALITIES:
+    MIN_MAX : True #Even though we calculated the mean and std of the whole dataset we used the Min max scalar (Per channel) to scale the data to bring all the multi data modalities to a common distribution
     PRE:
       # Normalization stats
       OPTICAL:

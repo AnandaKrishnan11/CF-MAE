@@ -14,7 +14,7 @@ import time
 import tqdm
 import datetime
 
-def main(config):
+def main():
       
       #Building config for model and data
       data_config = load_config(is_pretrain=True,type='data')
@@ -42,7 +42,7 @@ def main(config):
       print(f"[INFO]----Image size {data_config['NUM_CHANNELS']}")
       print(f"[INFO]----Batch size used {data_config['BATCH_SIZE']}")
 
-      lr_scheduler = build_scheduler(config,logger, optimizer,n_iter_per_epoch=len(train_loader))
+      lr_scheduler = build_scheduler(model_config,logger, optimizer,n_iter_per_epoch=len(train_loader))
 
       #Resume model training
       if model_config['TRAINING']['AUTO_RESUME'] and model_config['TRAINING']['CHECKPOINT_PATH'].exists():
@@ -114,7 +114,7 @@ def main(config):
                   memory_used = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
                   etas = batch_time.avg * (num_steps - idx)
                   logger.info(
-                  f'Train: [{epoch}/{model_config['TRAINING']['TOTAL_EPOCHS']}][{idx}/{num_steps}]\t'
+                  f"Train: [{epoch}/{model_config['TRAINING']['TOTAL_EPOCHS']}][{idx}/{num_steps}]\t"
                   f'eta {datetime.timedelta(seconds=int(etas))} lr {lr:.6f}\t'
                   f'time {batch_time.val:.4f} ({batch_time.avg:.4f})\t'
                   f'loss {loss_meter.val:.4f} ({loss_meter.avg:.4f})\t'
