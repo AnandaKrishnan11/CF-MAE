@@ -236,7 +236,5 @@ class CF_MAE(nn.Module):
         # Pixel-wise MSE loss on masked regions
         loss_recon = (pred_post - img_post) ** 2
         loss_recon = (loss_recon * mask_full).sum() / (mask_full.sum() + 1e-5)
-        
-        loss_dict = {'loss_recon': loss_recon}
-    
-        return loss_dict
+
+        return loss_recon

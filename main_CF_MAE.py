@@ -37,7 +37,7 @@ def main():
 
       train_loader = build_loader(data_config,logger)
 
-      print(f"[INFO]----Total number of Images used {data_config['BATCH_SIZE']*len(train_loader)}")
+      print(f"[INFO]----Total number of Images used {len(train_loader.dataset)}")
       print(f"[INFO]----Image size {data_config['IMAGE_SIZE']}")
       print(f"[INFO]----Image size {data_config['NUM_CHANNELS']}")
       print(f"[INFO]----Batch size used {data_config['BATCH_SIZE']}")
@@ -58,6 +58,7 @@ def main():
       start_epoch = model_config['TRAINING']['START_EPOCH']
       total_epochs  = model_config['TRAINING']['TOTAL_EPOCHS']
       num_steps = len(train_loader)
+      min_loss = 0 #We are only saving the best model
 
       batch_time = AverageMeter()
       loss_meter = AverageMeter()
@@ -76,7 +77,7 @@ def main():
                   
                   #Gradient Accumulation
                   if model_config['TRAINING']['ACCUMULATION_STEPS']>1:
-                        loss = loss['loss_recon'] / model_config['TRAINING']['ACCUMULATION_STEPS']
+                        loss = loss / model_config['TRAINING']['ACCUMULATION_STEPS']
                         loss.backward()
                         if model_config['TRAINING']['GRAD_CLIP']:
                               grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])       
@@ -115,12 +116,15 @@ def main():
                         f'grad_norm {norm_meter.val:.4f} ({norm_meter.avg:.4f})\t'
                         f'mem {memory_used:.0f}MB')
             
-            save_state = {'model': model.state_dict(),'optimizer': optimizer.state_dict(), 'lr_scheduler': lr_scheduler.state_dict(),'epoch': epoch}
-            torch.save(save_state,os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth'))
-            model_config['TRAINING']['CHECKPOINT_PATH'] = os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth')
-            write_config(config=model_config,type="model")
-            logger.info(f"{model_config['TRAINING']['CHECKPOINT_PATH']} saved !!!")
-
+            if min_loss==0 or min_loss > loss_meter.avg:
+                  min_loss = loss_meter.avg
+                  save_state = {'model': model.state_dict(),'optimizer': optimizer.state_dict(), 'lr_scheduler': lr_scheduler.state_dict(),'epoch': epoch}
+                  torch.save(save_state,os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth'))
+                  model_config['TRAINING']['CHECKPOINT_PATH'] = os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth')
+                  write_config(config=model_config,type="model")
+                  logger.info(f"{model_config['TRAINING']['CHECKPOINT_PATH']} saved !!!")
+            else:
+                  continue
             epoch_time = time.time() - e_start
             logger.info(f"EPOCH {epoch} training takes {datetime.timedelta(seconds=int(epoch_time))}")
             print(f"[INFO][EPOCH]---{epoch}|[TIME]---{datetime.timedelta(seconds=int(epoch_time))}|[LOSS]---{loss_meter.avg:.4f}")
