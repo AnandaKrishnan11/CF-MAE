@@ -11,16 +11,13 @@ PRETRAIN:
 
     ENCODER:
       BACKBONE: vit_base_patch16_224
+      PRETRAINED: True
       IMG_SIZE: 224
       IN_CHANNELS: 3
       PATCH_SIZE: 16
       EMBED_DIM: 768
-      NUM_LAYERS: 12
-      NUM_HEADS: 12
-      MLP_RATIO: 4.
-      QKV_BAIS: True
       DROP_OUT: 0.
-      DROP_PATH: 0.1  # stochastic depth
+      DROP_PATH: 0.1 
 
     DECODER:
 

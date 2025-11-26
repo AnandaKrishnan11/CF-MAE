@@ -1,12 +1,12 @@
-from model import CF_MAE
+from model.CF_MAE import CF_MAE
 #from terratorch.registry import BACKBONE_REGISTRY
 #from transformers import AutoModel
 
 def build_model(config,logger,name='CF_MAE'):
 
-    if name == 'CF_MAE':#
+    if name == 'CF_MAE':
         logger.info(f'[MODEL BUILDER]-------Building {name} model for pre-tuning')
-        return CF_MAE.TemporalGeoMAE_ConvDecoder()
+        return CF_MAE(config)
     #elif name == 'prithvi': #PRITHVI (~100M TO 600M)
         #logger.info(f'[MODEL BUILDER]-------Building {name} model for fine-tuning')
         #return BACKBONE_REGISTRY.build("ibm-nasa-geospatial/Prithvi-EO-2.0-300M")
