@@ -45,7 +45,7 @@ def main():
       lr_scheduler = build_scheduler(model_config,logger, optimizer,n_iter_per_epoch=len(train_loader))
 
       #Resume model training
-      if model_config['TRAINING']['AUTO_RESUME'] and os.path.exists(model_config['TRAINING']['CHECKPOINT_PATH']):
+      if model_config['TRAINING']['AUTO_RESUME'] and os.path.isfile(model_config['TRAINING']['CHECKPOINT_PATH']):
             print(f"[INFO]----Resuming training from checkpoint: {model_config['TRAINING']['CHECKPOINT_PATH']}")
             checkpoint = torch.load(model_config['TRAINING']['CHECKPOINT_PATH'], map_location="cpu")
             model.load_state_dict(checkpoint["model"])
