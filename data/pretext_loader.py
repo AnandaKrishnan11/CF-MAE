@@ -16,100 +16,64 @@ class CF_MAE_Dataset(Dataset):
         super().__init__()
 
         self.data_config = config    
-        self.pre,self.post = self.get_data()
         self.logger = logger
-        self.logger.info(f'[CF_MAE_Dataset INIT]---------- with {len(self.pre)} PRE and {len(self.post)} Images')
+        self.pre_list, self.post_list = self.loadfile_list()
+        self.logger.info(f'[CF_MAE_Dataset INIT]---------- with {len(self.pre_list)} PRE and {len(self.post_list)} Images')
         
     def __getitem__(self, index):
 
-        pre = self.pre[index]
-        post = self.post[index]
-        return pre, post
+        pre_im = imread(self.pre_list[index])
+        post_im = imread(self.post_list[index])
+
+        if np.any(~np.isfinite(pre_im)) or np.any(~np.isfinite(post_im)):
+            pre_im = np.nan_to_num(pre_im)
+            post_im = np.nan_to_num(post_im)
+        
+        pre_tensor = self.pre_transform(pre_im)
+        post_tensor = self.post_transform(post_im)
     
-    def get_data(self):
+        return pre_tensor, post_tensor
+    
+    def loadfile_list(self):
 
         pre_list = []
         post_list = []
 
         for folds in os.listdir(self.data_config['PATH']):
-            if folds == 'SEN4FLOOD_A' or folds == 'SEN4FLOOD_B':
-                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif'))+ glob.glob(os.path.join(self.data_config['PATH'], folds, 'pre', '*.png')))
-                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')) + glob.glob(os.path.join(self.data_config['PATH'], folds, 'post', '*.png')))
-
-                for pre_img,post_img in zip(pre,post):
-                    pre_im = imread(pre_img)
-                    post_im = imread(post_img)
-                    has_invalid_pre = np.any(~np.isfinite(pre_im))
-                    has_invalid_post = np.any(~np.isfinite(post_im))
-
-                    if has_invalid_pre or has_invalid_post:
-                        continue
-                    else:
-                        preimg = self.pre_transform(pre_im,type='sar')
-                        pre_list.append(preimg)
-                        postimg = self.post_transform(post_im, type='sar')
-                        post_list.append(postimg)
-            else: 
-                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif')) + glob.glob(os.path.join(self.data_config['PATH'], folds, 'pre', '*.png')))
-                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')) + glob.glob(os.path.join(self.data_config['PATH'], folds, 'post', '*.png')))
-
-                for pre_img,post_img in zip(pre,post):
-                    pre_im = imread(pre_img)
-                    post_im = imread(post_img)
-                    has_invalid_pre = np.any(~np.isfinite(pre_im))
-                    has_invalid_post = np.any(~np.isfinite(post_im))
-
-                    if has_invalid_pre or has_invalid_post:
-                        continue
-                    else:
-                        preimg = self.pre_transform(pre_im,type='optical')
-                        pre_list.append(preimg)
-                        postimg = self.post_transform(post_im, type='optical')
-                        post_list.append(postimg)
+        
+            pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif'))+ glob.glob(os.path.join(self.data_config['PATH'], folds, 'pre', '*.png')))
+            post = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')) + glob.glob(os.path.join(self.data_config['PATH'], folds, 'post', '*.png')))
+            if len(pre) != len(post):
+                raise ValueError(f"Mismatch in file count in {folds} for PRE and POST")
+                continue
+            pre_list.extend(pre)
+            post_list.extend(post)   
         return pre_list,post_list
 
-    def pre_transform(self,x,type):
+    def pre_transform(self,x):
         
-        if type == 'sar':
-            x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
-            if self.data_config['MODALITIES']['MIN_MAX']:
-                min_vals = x.amin(dim=(1, 2), keepdim=True)
-                max_vals = x.amax(dim=(1, 2), keepdim=True)
-                x = (x - min_vals) / (max_vals - min_vals + 1e-6)
-            else:
-                x = normalize(x,self.data_config['MODALITIES']['PRE']['SAR']['MEAN'],self.data_config['MODALITIES']['PRE']['SAR']['STD'],inplace=True)
+        x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
+        if self.data_config['MODALITIES']['MIN_MAX']:
+            min_vals = x.amin(dim=(1, 2), keepdim=True)
+            max_vals = x.amax(dim=(1, 2), keepdim=True)
+            x = (x - min_vals) / (max_vals - min_vals + 1e-6)
         else:
-            x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
-            if self.data_config['MODALITIES']['MIN_MAX']:
-                min_vals = x.amin(dim=(1, 2), keepdim=True)
-                max_vals = x.amax(dim=(1, 2), keepdim=True)
-                x = (x - min_vals) / (max_vals - min_vals + 1e-6)
-            else:
-                x = normalize(x,self.data_config['MODALITIES']['PRE']['OPTICAL']['MEAN'],self.data_config['MODALITIES']['PRE']['OPTICAL']['STD'],inplace=True)
+            raise NotImplementedError
         return x
 
-    def post_transform(self,x,type):
+    def post_transform(self,x):
 
-        if type == 'sar':
-            x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
-            if self.data_config['MODALITIES']['MIN_MAX']:
-                min_vals = x.amin(dim=(1, 2), keepdim=True)
-                max_vals = x.amax(dim=(1, 2), keepdim=True)
-                x = (x - min_vals) / (max_vals - min_vals + 1e-6)
-            else:
-                x = normalize(x,self.data_config['MODALITIES']['POST']['SAR']['MEAN'],self.data_config['MODALITIES']['POST']['SAR']['STD'],inplace=True)
+        x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
+        if self.data_config['MODALITIES']['MIN_MAX']:
+            min_vals = x.amin(dim=(1, 2), keepdim=True)
+            max_vals = x.amax(dim=(1, 2), keepdim=True)
+            x = (x - min_vals) / (max_vals - min_vals + 1e-6)
         else:
-            x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)         
-            if self.data_config['MODALITIES']['MIN_MAX']:
-                min_vals = x.amin(dim=(1, 2), keepdim=True)
-                max_vals = x.amax(dim=(1, 2), keepdim=True)
-                x = (x - min_vals) / (max_vals - min_vals + 1e-6)
-            else:
-                x = normalize(x,self.data_config['MODALITIES']['POST']['OPTICAL']['MEAN'],self.data_config['MODALITIES']['POST']['OPTICAL']['STD'],inplace=True)
+            raise NotImplementedError
         return x
     
-    def __len__(self):
-        return len(self.pre)
+    def __len__(self): 
+        return len(self.pre_list)
 
 # dataloader function
 def build_loader(config,logger,distributed = False):

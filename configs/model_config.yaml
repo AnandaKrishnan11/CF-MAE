@@ -57,4 +57,4 @@ PRETRAIN:
     GAMMA: 0.1      # ONLY FOR STEP SCHEDULER
 
     # Path to save the trained CF-MAE
-    CHECKPOINT_PATH: 'E:\pretext_data\Checkpoint_hub'
+    CHECKPOINT_PATH: /media/krishnan/GFM/pretext_data/Checkpoint_hub

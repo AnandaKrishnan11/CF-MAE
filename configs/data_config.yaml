@@ -4,7 +4,7 @@
 
 PRETRAIN:
   DATASET_NAME: PANDORA   # Paired Natural Disaster Observations for Reconstruction and Analysis
-  PATH: E:\pretext_data
+  PATH: /media/krishnan/GFM/pretext_data
   IMAGE_SIZE: 224
   NUM_CHANNELS: 3
 

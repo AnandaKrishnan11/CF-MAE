@@ -56,9 +56,9 @@ class simDecoder(nn.Module):
         ) 
         
         H = W = self.num_patches_per_dim
-        x_spatial = x_full.transpose(2, 1).reshape(B, D, H, W)
+        x_spatial = x_full.transpose(2,1).reshape(B, D, H, W)
         
-        pred = self.decoder(x) 
+        pred = self.decoder(x_spatial) 
         return pred
 
 class CF_MAE(nn.Module):
