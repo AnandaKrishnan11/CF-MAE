@@ -83,7 +83,9 @@ class CF_MAE(nn.Module):
             num_classes=0,
             drop_path_rate=config['MODEL']['ENCODER']['DROP_PATH'],
             global_pool='',
-        )
+        ) 
+        # here what I am thinking is if the encoder we are creating here is pretrained, we can freez the weights and train the projector and chnage module
+        # also the same for the decoder if its the standard decoder already used
 
         self.pre_projection = nn.Sequential(
             nn.Linear(self.embed_dim, self.embed_dim),
@@ -178,7 +180,7 @@ class CF_MAE(nn.Module):
         
         return x, mask, ids_restore
     
-    def compute_change_encoding(self, z_pre, z_post):
+    def compute_change_encoding(self, z_pre, z_post): # This needs strong logic how element wise concatenation of [x,y, x-y, x*y]
         """Compute rich difference encoding"""
 
         z_concat = torch.cat([
@@ -191,7 +193,7 @@ class CF_MAE(nn.Module):
         z_diff = self.change_encoder(z_concat)
         return z_diff
     
-    def forward(self, img_pre, img_post):
+    def forward(self, img_pre, img_post):  # here if we are constrained by computational burden we have to have alternative. I will getback on this
      
         z_pre_enc, mask_pre, ids_restore_pre = self.encode(img_pre, self.mask_ratio)
         z_post_enc, mask_post, ids_restore_post = self.encode(img_post, self.mask_ratio)
