@@ -79,10 +79,12 @@ def main():
                   if model_config['TRAINING']['ACCUMULATION_STEPS']>1:
                         loss = loss / model_config['TRAINING']['ACCUMULATION_STEPS']
                         loss.backward()
-                        if model_config['TRAINING']['GRAD_CLIP']:
+                        if model_config['TRAINING']['GRAD_CLIP']: 
+                              # as I understood, the gradient is cliped in place, I would rather not save the grad norms  
+                              # as indicated here https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html#torch.nn.utils.clip_grad_norm_
                               grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])       
                         else:
-                              grad_norm = get_grad_norm(model.parameters())  
+                              grad_norm = get_grad_norm(model.parameters())  # simmilar to the previous coment, here we are adding addiional computationa time
                         if idx % model_config['TRAINING']['ACCUMULATION_STEPS'] == 0  or (idx == num_steps):
                               optimizer.step()
                               optimizer.zero_grad()
@@ -93,7 +95,7 @@ def main():
                         if model_config['TRAINING']['GRAD_CLIP']:
                               grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])       
                         else:
-                              grad_norm = get_grad_norm(model.parameters())  
+                              grad_norm = get_grad_norm(model.parameters())   # still we are computing the gradient norm
                   
                         optimizer.step()
                         lr_scheduler.step_update(epoch * num_steps + idx)
