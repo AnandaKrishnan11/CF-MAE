@@ -18,7 +18,7 @@ def model_config(is_pretrain=True):
         model_config = yaml.load(m, Loader=FullLoader)
 
         if is_pretrain:
-            return model_config['PRETRAIN']
+            return model_config
         else:
             return model_config['FINETUNE']
         

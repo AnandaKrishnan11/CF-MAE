@@ -62,7 +62,7 @@ def main():
 
       batch_time = AverageMeter()
       loss_meter = AverageMeter()
-      norm_meter = AverageMeter()
+      #norm_meter = AverageMeter()
 
       model.train()
       for epoch in tqdm(range(start_epoch,total_epochs),total=total_epochs):
@@ -82,9 +82,8 @@ def main():
                         if model_config['TRAINING']['GRAD_CLIP']: 
                               # as I understood, the gradient is cliped in place, I would rather not save the grad norms  
                               # as indicated here https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html#torch.nn.utils.clip_grad_norm_
-                              grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])       
-                        else:
-                              grad_norm = get_grad_norm(model.parameters())  # simmilar to the previous coment, here we are adding addiional computationa time
+                              torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])       
+
                         if idx % model_config['TRAINING']['ACCUMULATION_STEPS'] == 0  or (idx == num_steps):
                               optimizer.step()
                               optimizer.zero_grad()
@@ -93,9 +92,7 @@ def main():
                         optimizer.zero_grad()        
                         loss.backward()
                         if model_config['TRAINING']['GRAD_CLIP']:
-                              grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])       
-                        else:
-                              grad_norm = get_grad_norm(model.parameters())   # still we are computing the gradient norm
+                              torch.nn.utils.clip_grad_norm_(model.parameters(), model_config['TRAINING']['GRAD_CLIP'])      
                   
                         optimizer.step()
                         lr_scheduler.step_update(epoch * num_steps + idx)
@@ -103,7 +100,7 @@ def main():
                   torch.cuda.synchronize()
 
                   loss_meter.update(loss.item(),n=pre.size(0))
-                  norm_meter.update(grad_norm)
+                  #norm_meter.update(grad_norm)
                   batch_time.update(time.time()-b_start)
 
                   if idx % model_config['TRAINING']['PRINT_FREQ'] == 0:
@@ -115,15 +112,15 @@ def main():
                         f'eta {datetime.timedelta(seconds=int(etas))} lr {lr:.6f}\t'
                         f'time {batch_time.val:.4f} ({batch_time.avg:.4f})\t'
                         f'loss {loss_meter.val:.4f} ({loss_meter.avg:.4f})\t'
-                        f'grad_norm {norm_meter.val:.4f} ({norm_meter.avg:.4f})\t'
+                        #f'grad_norm {norm_meter.val:.4f} ({norm_meter.avg:.4f})\t'
                         f'mem {memory_used:.0f}MB')
             
             if min_loss==0 or min_loss > loss_meter.avg:
                   min_loss = loss_meter.avg
                   save_state = {'model': model.state_dict(),'optimizer': optimizer.state_dict(), 'lr_scheduler': lr_scheduler.state_dict(),'epoch': epoch}
-                  torch.save(save_state,os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth'))
-                  model_config['TRAINING']['CHECKPOINT_PATH'] = os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth')
-                  write_config(config=model_config,type="model")
+                  torch.save(save_state,model_config['TRAINING']['CHECKPOINT_PATH'])
+                  #model_config['TRAINING']['CHECKPOINT_PATH'] = os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth')
+                  #write_config(config=model_config,type="model")
                   logger.info(f"{model_config['TRAINING']['CHECKPOINT_PATH']} saved !!!")
             else:
                   continue

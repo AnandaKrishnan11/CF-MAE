@@ -92,23 +92,28 @@ class CF_MAE(nn.Module):
             nn.GELU(),
             nn.Linear(self.embed_dim, self.embed_dim),
         )
+        self.pre_projection._is_decoder = True 
+
         
         self.post_projection = nn.Sequential(
             nn.Linear(self.embed_dim, self.embed_dim),
             nn.GELU(),
             nn.Linear(self.embed_dim, self.embed_dim),
         )
-        
+        self.post_projection._is_decoder = True 
+
         self.change_encoder = nn.Sequential(
-            nn.Linear(self.embed_dim * 4, self.embed_dim * 2),
+            nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
             nn.GELU(),
             nn.Linear(self.embed_dim * 2, self.embed_dim),
         )
+        self.change_encoder._is_decoder = True 
         
         self.decoder_embed = nn.Linear(
             self.embed_dim * 2,
             self.embed_dim
         )
+        self.decoder_embed._is_decoder = True 
         
         self.mask_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
         
@@ -117,6 +122,8 @@ class CF_MAE(nn.Module):
             img_size=self.img_size,
             patch_size=self.patch_size
         )
+        self.decoder._is_decoder = True 
+        
         self.initialize_weights()
     
     def initialize_weights(self):
@@ -127,6 +134,8 @@ class CF_MAE(nn.Module):
         self.apply(self._init_weights)
     
     def _init_weights(self, m):
+        if not hasattr(m, "_is_decoder"):
+            return  # skiping timm encoder pretrained weights init 
         if isinstance(m, nn.Linear):
             nn.init.xavier_uniform_(m.weight)
             if m.bias is not None:
@@ -141,7 +150,7 @@ class CF_MAE(nn.Module):
     
     @torch.jit.ignore
     def no_weight_decay(self):
-        return {'pos_embed', 'cls_token'}
+        return {'encoder.cls_token', 'encoder.pos_embed','mask_token'}
     
     def random_masking(self, x, mask_ratio):
         """
@@ -186,8 +195,7 @@ class CF_MAE(nn.Module):
         z_concat = torch.cat([
             z_pre,
             z_post,
-            z_post - z_pre,  
-            z_post * z_pre, 
+            z_post - z_pre
         ], dim=-1)
         
         z_diff = self.change_encoder(z_concat)

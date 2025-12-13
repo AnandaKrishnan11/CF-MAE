@@ -24,10 +24,6 @@ class CF_MAE_Dataset(Dataset):
 
         pre_im = imread(self.pre_list[index])
         post_im = imread(self.post_list[index])
-
-        if np.any(~np.isfinite(pre_im)) or np.any(~np.isfinite(post_im)):
-            pre_im = np.nan_to_num(pre_im)
-            post_im = np.nan_to_num(post_im)
         
         pre_tensor = self.pre_transform(pre_im)
         post_tensor = self.post_transform(post_im)
@@ -40,14 +36,23 @@ class CF_MAE_Dataset(Dataset):
         post_list = []
 
         for folds in os.listdir(self.data_config['PATH']):
-        
+
             pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'pre','*.tif'))+ glob.glob(os.path.join(self.data_config['PATH'], folds, 'pre', '*.png')))
             post = sorted(glob.glob(os.path.join(self.data_config['PATH'],folds,'post','*.tif')) + glob.glob(os.path.join(self.data_config['PATH'], folds, 'post', '*.png')))
             if len(pre) != len(post):
                 raise ValueError(f"Mismatch in file count in {folds} for PRE and POST")
                 continue
-            pre_list.extend(pre)
-            post_list.extend(post)   
+            else:
+                for pre_files,post_files in zip(pre, post):
+                    pre_im = imread(pre_files)
+                    post_im = imread(post_files)
+
+                    if not (np.isfinite(pre_im).all() and np.isfinite(post_im).all()):
+                        continue
+                    else:
+                        pre_list.append(pre_files)
+                        post_list.append(post_files)   
+
         return pre_list,post_list
 
     def pre_transform(self,x):
