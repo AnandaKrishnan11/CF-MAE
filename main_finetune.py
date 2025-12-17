@@ -7,7 +7,6 @@ from configs.build_config import load_config,write_config
 from logger import create_logger
 from lr_scheduler import build_scheduler
 from optimizer import build_optimizer
-from utils import get_grad_norm
 
 import os
 import time
@@ -23,24 +22,25 @@ def main():
       output_dir = data_config['PATH']
       logger = create_logger(output_dir, dist_rank=0, name='pretrain_logger')
       
-      logger.info(f"Creating model:{model_config['MODEL']['TYPE']} style--{model_config['MODEL']['NAME']}")
-      print(f"[INFO]---Creating model:{model_config['MODEL']['TYPE']} style--{model_config['MODEL']['NAME']}")
-      model = build_model(model_config,logger,name = model_config['MODEL']['NAME'])
+      logger.info(f"Creating model:{model_config['TYPE']} style--{model_config['NAME']}")
+      print(f"[INFO]---Creating model:{model_config['TYPE']} style--{model_config['NAME']}")
+      model = build_model(model_config,is_pretrain=False)
       try:
-        checkpoint = torch.load(model_config['TRAINING']['CHECKPOINT_PATH'], map_location="cpu")
+        checkpoint = torch.load(model_config['PRETRAINED_WEIGHT'], map_location="cpu")
         model.load_state_dict(checkpoint["model"])
       except Exception as e:
-        print(f'Error-------------{e}')
+        print(f'[Error]-------------{e}')
       model.cuda()
       logger.info(str(model))
 
-      optimizer = build_optimizer(model_config,model,logger,is_pretrain=True)
+      optimizer = build_optimizer(model_config,model,logger)
 
       n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
       print(f"[INFO]----Model initialized with {n_parameters} number of paramter")
       logger.info(f"number of params: {n_parameters}")
 
       train_loader = build_loader(data_config,logger,train=True)
+      val_loader = build_loader(data_config,logger,train=False)
 
       print(f"[INFO]----Total number of Images used {len(train_loader.dataset)}")
       print(f"[INFO]----Image size {data_config['IMAGE_SIZE']}")
@@ -57,6 +57,7 @@ def main():
             optimizer.load_state_dict(checkpoint["optimizer"])
             lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
             model_config['TRAINING']['START_EPOCH'] = checkpoint["epoch"] + 1
+            write_config(model_config,type='model')
             print(f"[INFO]----Restarting training at epoch: {model_config['TRAINING']['START_EPOCH']}")
 
       #train
@@ -67,12 +68,14 @@ def main():
 
       batch_time = AverageMeter()
       loss_meter = AverageMeter()
-      #norm_meter = AverageMeter()
+      val_loss_meter = AverageMeter()
+      early_stop_counter = 0
 
-      model.train()
+      
       for epoch in tqdm(range(start_epoch,total_epochs),total=total_epochs):
             e_start = time.time()
 
+            model.train()
             for idx,(pre,post,lbl) in enumerate(train_loader,start=1):  
                   b_start = time.time()
                   pre = pre.cuda(non_blocking=True)
@@ -107,7 +110,6 @@ def main():
                   torch.cuda.synchronize()
 
                   loss_meter.update(loss.item(),n=pre.size(0))
-                  #norm_meter.update(grad_norm)
                   batch_time.update(time.time()-b_start)
 
                   if idx % model_config['TRAINING']['PRINT_FREQ'] == 0:
@@ -119,21 +121,33 @@ def main():
                         f'eta {datetime.timedelta(seconds=int(etas))} lr {lr:.6f}\t'
                         f'time {batch_time.val:.4f} ({batch_time.avg:.4f})\t'
                         f'loss {loss_meter.val:.4f} ({loss_meter.avg:.4f})\t'
-                        #f'grad_norm {norm_meter.val:.4f} ({norm_meter.avg:.4f})\t'
                         f'mem {memory_used:.0f}MB')
+                  
+            with torch.no_grad():
+                  model.eval()
+                  for idx,(pre,post,lbl) in enumerate(val_loader,start=1):
+                        pre = pre.cuda(non_blocking=True)
+                        post = post.cuda(non_blocking=True)
+                        lbl = lbl.cuda(non_blocking=True)
+
+                        pred = model(pre,post)
+                        val_loss = model.compute_loss(pred,lbl)
+                        val_loss_meter.update(val_loss.item(),n=pre.size(0))
             
             if min_loss==0 or min_loss > loss_meter.avg:
                   min_loss = loss_meter.avg
                   save_state = {'model': model.state_dict(),'optimizer': optimizer.state_dict(), 'lr_scheduler': lr_scheduler.state_dict(),'epoch': epoch}
                   torch.save(save_state,model_config['TRAINING']['CHECKPOINT_PATH'])
-                  #model_config['TRAINING']['CHECKPOINT_PATH'] = os.path.join(model_config['TRAINING']['CHECKPOINT_PATH'],f'ckpt_epoch_{epoch}.pth')
-                  #write_config(config=model_config,type="model")
                   logger.info(f"{model_config['TRAINING']['CHECKPOINT_PATH']} saved !!!")
+                  early_stop_counter = 0
             else:
-                  continue
+                  early_stop_counter +=1
+                  if early_stop_counter >= model_config['TRAINING']['PATIENCE']:
+                        logger.info(f'[INIT]---------EARLYSTOPING AT EPOCH--{epoch}')
+                        break
+            
             epoch_time = time.time() - e_start
-            logger.info(f"EPOCH {epoch} training takes {datetime.timedelta(seconds=int(epoch_time))}")
-            print(f"[INFO][EPOCH]---{epoch}|[TIME]---{datetime.timedelta(seconds=int(epoch_time))}|[LOSS]---{loss_meter.avg:.4f}")
+            logger.info(f"[INFO][EPOCH]---{epoch}|[TIME]---{datetime.timedelta(seconds=int(epoch_time))}|[TRAIN-LOSS]---{loss_meter.avg:.4f}|[VAL-LOSS]---{val_loss_meter.avg:.4f}")
                       
 if __name__ == "__main__":
       main()

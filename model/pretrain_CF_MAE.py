@@ -71,17 +71,17 @@ class CF_MAE(nn.Module):
     ):
         super().__init__()
 
-        self.img_size = config['MODEL']['ENCODER']['IMG_SIZE']
-        self.patch_size = config['MODEL']['ENCODER']['PATCH_SIZE']
-        self.encoder_name = config['MODEL']['ENCODER']['BACKBONE']
-        self.mask_ratio = config['MODEL']['MASKING']['MASK_RATIO']
-        self.embed_dim = config['MODEL']['ENCODER']['EMBED_DIM']
+        self.img_size = config['ENCODER']['IMG_SIZE']
+        self.patch_size = config['ENCODER']['PATCH_SIZE']
+        self.encoder_name = config['ENCODER']['BACKBONE']
+        self.mask_ratio = config['MASKING']['MASK_RATIO']
+        self.embed_dim = config['ENCODER']['EMBED_DIM']
         
         self.encoder = timm.create_model(
             self.encoder_name,
-            pretrained=config['MODEL']['ENCODER']['PRETRAINED'],
+            pretrained=config['ENCODER']['PRETRAINED'],
             num_classes=0,
-            drop_path_rate=config['MODEL']['ENCODER']['DROP_PATH'],
+            drop_path_rate=config['ENCODER']['DROP_PATH'],
             global_pool='',
         ) 
         # here what I am thinking is if the encoder we are creating here is pretrained, we can freez the weights and train the projector and chnage module
@@ -110,7 +110,7 @@ class CF_MAE(nn.Module):
         self.change_encoder._is_decoder = True 
         
         self.decoder_embed = nn.Linear(
-            self.embed_dim * 2,
+            self.embed_dim,
             self.embed_dim
         )
         self.decoder_embed._is_decoder = True 
@@ -152,14 +152,16 @@ class CF_MAE(nn.Module):
     def no_weight_decay(self):
         return {'encoder.cls_token', 'encoder.pos_embed','mask_token'}
     
-    def random_masking(self, x, mask_ratio):
+    def random_masking(self, x, mask_ratio, noise=None):
         """
         Perform random masking by per-sample shuffling.
         """
         B, N, D = x.shape
         len_keep = int(N * (1 - mask_ratio))
         
-        noise = torch.rand(B, N, device=x.device)
+        if noise is None:
+            noise = torch.rand(B, N, device=x.device)
+        
         ids_shuffle = torch.argsort(noise, dim=1)
         ids_restore = torch.argsort(ids_shuffle, dim=1)
         
@@ -170,9 +172,9 @@ class CF_MAE(nn.Module):
         mask[:, :len_keep] = 0
         mask = torch.gather(mask, dim=1, index=ids_restore)
         
-        return x_masked, mask, ids_restore
+        return x_masked, mask, ids_restore, noise
     
-    def encode(self, img, mask_ratio):
+    def encode(self, img, mask_ratio,noise):
         """Encode image with masking"""
 
         x = self.encoder.patch_embed(img)
@@ -180,7 +182,7 @@ class CF_MAE(nn.Module):
         if hasattr(self.encoder, 'pos_embed'):
             x = x + self.encoder.pos_embed[:, 1:, :]  # Skip cls token
 
-        x, mask, ids_restore = self.random_masking(x, mask_ratio)
+        x, mask, ids_restore,_ = self.random_masking(x, mask_ratio,noise)
         
         for block in self.encoder.blocks:
             x = block(x)
@@ -202,17 +204,20 @@ class CF_MAE(nn.Module):
         return z_diff
     
     def forward(self, img_pre, img_post):  # here if we are constrained by computational burden we have to have alternative. I will getback on this
+
+        B = img_pre.shape[0]
+        N = (self.img_size // self.patch_size) ** 2
+        noise = torch.rand(B, N, device=img_pre.device)
      
-        z_pre_enc, mask_pre, ids_restore_pre = self.encode(img_pre, self.mask_ratio)
-        z_post_enc, mask_post, ids_restore_post = self.encode(img_post, self.mask_ratio)
+        z_pre_enc, mask_pre, ids_restore_pre = self.encode(img_pre, self.mask_ratio,noise)
+        z_post_enc, mask_post, ids_restore_post = self.encode(img_post, self.mask_ratio,noise)
         
         z_pre = self.pre_projection(z_pre_enc)
         z_post = self.post_projection(z_post_enc)
         
         z_diff = self.compute_change_encoding(z_pre, z_post)
         
-        z_combined = torch.cat([z_pre, z_diff], dim=-1)
-        z_dec = self.decoder_embed(z_combined)
+        z_dec = self.decoder_embed(z_diff)
         
         pred_post = self.decoder(z_dec, ids_restore_post, self.mask_token)
         

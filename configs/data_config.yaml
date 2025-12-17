@@ -43,8 +43,8 @@ PRETRAIN:
 # FINETUNE / DOWNSTREAM DATASETS
 # ====================================================================
 
-# Sentinel-2 Wildfire Change Detection (S2-WCD)
-S2-WCD:
+FINETUNE:
+  NAME: S2WCD # Sentinel-2 Wildfire Change Detection (S2-WCD)
   PATH:
   IMAGE_SIZE: 224
   NO_CHANNELS: 3

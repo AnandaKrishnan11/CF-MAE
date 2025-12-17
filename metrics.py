@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score,precision_score,recall_score
 
 
 def calculate_IOU(ref, pred):
@@ -34,11 +34,29 @@ def calculate_F1(ref, pred):
     pred = pred.cpu().numpy().ravel()
     return f1_score(ref, pred)
 
+def calculate_recall(ref, pred):
+    """
+    ref, pred: tensors of shape (B, H, W)
+    """
+    ref = ref.cpu().numpy().ravel()
+    pred = pred.cpu().numpy().ravel()
+    return recall_score(ref, pred)
+
+def calculate_precision(ref, pred):
+    """
+    ref, pred: tensors of shape (B, H, W)
+    """
+    ref = ref.cpu().numpy().ravel()
+    pred = pred.cpu().numpy().ravel()
+    return precision_score(ref, pred)
+
 
 class metric_calculation:
     def __init__(self):
         self.iou = []
         self.f1 = []
+        self.precision = []
+        self.recall = []
 
     def compute_metrics(self, ref, pred):
 
@@ -53,16 +71,24 @@ class metric_calculation:
 
         iou_val = calculate_IOU(ref, pred_bin)
         f1_val = calculate_F1(ref, pred_bin)
+        precision_val = calculate_precision(ref, pred_bin)
+        recall_val = calculate_recall(ref, pred_bin)
 
         self.iou.append(iou_val)
         self.f1.append(f1_val)
+        self.precision.append(precision_val)
+        self.recall.append(recall_val)
 
     def reset(self):
         self.iou = []
         self.f1 = []
+        self.precision = []
+        self.recall = []
 
     def get_metrics(self):
         return {
             "iou": float(np.mean(self.iou)),
             "f1": float(np.mean(self.f1)),
+            "precision": float(np.mean(self.precision)),
+            "recall": float(np.mean(self.recall))
         }

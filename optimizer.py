@@ -6,11 +6,10 @@
 from torch import optim as optim
 
 
-def build_optimizer(config, model, logger, is_pretrain):
-    if is_pretrain:
-        return build_pretrain_optimizer(config, model, logger)
-    else:
-        raise NotImplementedError
+def build_optimizer(config, model, logger):
+    
+    return build_pretrain_optimizer(config, model, logger)
+
 
 def build_pretrain_optimizer(config, model, logger):
 

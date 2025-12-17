@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from CF_MAE import CF_MAE
+from model.pretrain_CF_MAE import CF_MAE
 
 class Decoder4Segm(nn.Module):
     """
@@ -23,19 +23,27 @@ class Decoder4Segm(nn.Module):
         self.num_class = config['DECODER']['OUT_CHANNEL']
 
         self.decoder = nn.Sequential(
-        
-                nn.ConvTranspose2d(embed_dim, 256, kernel_size=4, stride=2, padding=1),
-                nn.BatchNorm2d(256),
-                nn.ReLU(inplace=True),
+
+            nn.Conv2d(embed_dim, 256*4, kernel_size=3, padding=1),
+            nn.PixelShuffle(2),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
             
-                nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1),
-                nn.BatchNorm2d(128),
-                nn.ReLU(inplace=True),
+            nn.Conv2d(256, 128*4, kernel_size=3, padding=1),
+            nn.PixelShuffle(2),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
             
-                nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1),
-                nn.BatchNorm2d(64),
-                nn.ReLU(inplace=True),
-            )
+            nn.Conv2d(128, 64*4, kernel_size=3, padding=1),
+            nn.PixelShuffle(2),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            
+            nn.Conv2d(64, 64*4, kernel_size=3, padding=1),
+            nn.PixelShuffle(2),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+        )
         
         self.final = nn.Sequential(
             nn.Conv2d(64, 32, kernel_size=3, padding=1),
@@ -51,7 +59,6 @@ class Decoder4Segm(nn.Module):
         x = x.transpose(2, 1).reshape(B, D, H, W)
         
         x = self.decoder(x) 
-        x = F.interpolate(x,size=(224,224),mode='bilinear', align_corners=False)
         x = self.final(x)
 
         return x
@@ -64,11 +71,6 @@ class CF_MAE4Segm(nn.Module):
         self.config = config
 
         self.model = CF_MAE(config)
-        try:
-            checkpoint = torch.load(self.config['PRE_TRAINED_CHKPT'])
-            self.model.load_state_dict(checkpoint["model"])
-        except Exception as e:
-            print(e)
 
         self.decoder = Decoder4Segm(config)
         self.decoder._is_decoder = True
