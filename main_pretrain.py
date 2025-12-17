@@ -28,7 +28,7 @@ def main():
       model.cuda()
       logger.info(str(model))
 
-      optimizer = build_optimizer(model_config,model,logger,is_pretrain=True)
+      optimizer = build_optimizer(model_config,model,logger)
 
       n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
       print(f"[INFO]----Model initialized with {n_parameters} number of paramter")
