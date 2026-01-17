@@ -5,54 +5,75 @@ from data.finetune_loader import build_loader
 from configs.build_config import load_config
 from logger import create_logger
 from metrics import metric_calculation
+from utils import image
 
 def main():
       
-      data_config = load_config(is_pretrain=False,type='data')
+      data_config = load_config(is_pretrain=False,type='data',data="DSIFN")
       model_config = load_config(is_pretrain=False,type='model')
 
+      device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
       output_dir = data_config['PATH']
-      logger = create_logger(output_dir, dist_rank=0, name='pretrain_logger')
+      logger = create_logger(output_dir, dist_rank=0, name='inference_logger')
+      logger.info(f'Data Config - {data_config}')
+      logger.info(f'Model Config - {model_config}')
 
       logger.info(f"Creating model:{model_config['NAME']}")
-      model = build_model(model_config,name = model_config['NAME'])
-      try:
-        checkpoint = torch.load(model_config['FINETUNE_WEIGHT_S2WCD'], map_location="cpu")
-        model.load_state_dict(checkpoint["model"])
-      except Exception as e:
-        print(f'Error-------------{e}')
+      model = build_model(model_config,is_pretrain=False)
 
-      model.cuda()
+      
+      checkpoint = torch.load(model_config['TRAINING']['BEST_CHECKPOINT_PATH'], map_location="cpu")
+      new_check = {}
+      for k,v in checkpoint["model"].items():
+          if k.startswith('encoder4segm'):
+               new = k.replace('encoder4segm','encoderv2')
+               new_check[new] = v
+
+          elif k.startswith('decoder4segm'):
+               new = k.replace('decoder4segm','decoderv2')
+               new_check[new] = v
+
+
+      missing,unexpected = model.load_state_dict(new_check,strict=True)
+      print(f'[MISSING]---{missing}')
+      print(f'[UNEXPECTED]---{unexpected}')
+      #except Exception as e:
+        #print(f'Error-------------{e}')
+
+      model = model.to(device)
       logger.info(str(model))
 
       n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
       print(f"[INFO]----Model initialized with {n_parameters} number of paramter")
       logger.info(f"number of params: {n_parameters}")
 
-      val_loader = build_loader(data_config,logger,train=False)
-
+      test_loader = build_loader(data_config,logger,run ='test',data="DSIFN")
+      img = image()
       metric = metric_calculation()
 
       with torch.no_grad():
             model.eval()
-
-            for pre,post,lbl in val_loader:
-                  pre = pre.cuda(non_blocking=True)
-                  post = post.cuda(non_blocking=True)
-                  lbl = lbl.cuda(non_blocking=True)
+            for pre,post,lbl in test_loader:
+                  pre = pre.to(device)
+                  post = post.to(device)
+                  lbl = lbl.to(device)
 
                   pred = model(pre,post)
                   pred = torch.sigmoid(pred)
                   pred_bin = (pred > 0.5).long()
 
+                  img.visualise_scene(pre,post,lbl,pred_bin)
+
                   metric.compute_metrics(lbl,pred_bin)
+                  
 
             vals = metric.get_metrics()
 
-            print(f"[IOU METRICS]----------------{vals['iou']}")
-            print(f"[F1 METRICS]----------------{vals['f1']}")
-            print(f"[PRECISION METRICS]----------------{vals['precision']}")
-            print(f"[RECALL METRICS]----------------{vals['recall']}")
+            logger.info(f"[IOU METRICS]----------------{vals['iou']}")
+            logger.info(f"[F1 METRICS]----------------{vals['f1']}")
+            logger.info(f"[PRECISION METRICS]----------------{vals['precision']}")
+            logger.info(f"[RECALL METRICS]----------------{vals['recall']}")
 
 if __name__ =='__main__':
     main()

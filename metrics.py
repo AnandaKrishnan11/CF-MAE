@@ -60,14 +60,11 @@ class metric_calculation:
 
     def compute_metrics(self, ref, pred):
 
-        # Convert logits/probabilities → binary
-        pred_bin = (pred > 0.5).long()
-
         # Remove channel dimension if needed
         if ref.dim() == 4:
             ref = ref.squeeze(1)
-        if pred_bin.dim() == 4:
-            pred_bin = pred_bin.squeeze(1)
+        if pred.dim() == 4:
+            pred_bin = pred.squeeze(1)
 
         iou_val = calculate_IOU(ref, pred_bin)
         f1_val = calculate_F1(ref, pred_bin)

@@ -82,6 +82,7 @@ class CF_MAE_Dataset(Dataset):
 
 # dataloader function
 def build_loader(config,logger,distributed = False):
+    
 
     dataset = CF_MAE_Dataset(config,logger)
     if distributed:

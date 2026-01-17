@@ -18,13 +18,13 @@ PRETRAIN:
     MASK_RATIO: 0.75
   TRAINING:
     START_EPOCH: 0
-    TOTAL_EPOCHS: 200
-    WARMUP_EPOCHS: 20
+    TOTAL_EPOCHS: 100
+    WARMUP_EPOCHS: 10
     AUTO_RESUME: True
     WEIGHT_DECAY: 0.05
-    LEARNING_RATE: 5e-4
-    WARMUP_LR: 5e-7
-    MIN_LR: 5e-6
+    LEARNING_RATE: 1e-4
+    WARMUP_LR: 1e-7
+    MIN_LR: 1e-6
     GRAD_CLIP: 5.0
     ACCUMULATION_STEPS: 8
     PRINT_FREQ: 10
@@ -44,33 +44,39 @@ PRETRAIN:
 #############################################################################
 
 FINETUNE:
-  NAME: CF_MAE4Segm
+  NAME: MS_CFT4Segm
   TYPE: Segmentation
+  VERSION: v2
   ENCODER:
     BACKBONE: vit_base_patch16_224
-    PRETRAINED: False
     IMG_SIZE: 224
     IN_CHANNELS: 3
     PATCH_SIZE: 16
     EMBED_DIM: 768
-    DROP_OUT: 0.0
+    DROP_OUT: 0.1
     DROP_PATH: 0.1
   DECODER: 
     EMBED_DIM: 768
     OUT_IMG_SIZE: 224
     OUT_CHANNEL: 1
+  SATMAE:
+    WEIGHT: /media/krishnan/GFM/Checkpoint_hub/SATMAE/pretrain-vit-base-e199.pth
   TRAINING:
     START_EPOCH: 0
     TOTAL_EPOCHS: 50
-    WARMUP_EPOCHS: 8
+    WARMUP_EPOCHS: 5
     AUTO_RESUME: true
-    WEIGHT_DECAY: 0.05
-    LEARNING_RATE: 5e-4
-    WARMUP_LR: 5e-7
-    MIN_LR: 5e-6
-    GRAD_CLIP: 5.0
-    ACCUMULATION_STEPS: 8
-    PRINT_FREQ: 10
+    WEIGHT_DECAY: 0.02
+    LEARNING_RATE: 1e-3
+    WARMUP_LR: 1e-6
+    MIN_LR: 1e-6
+    ENCODER_LR_MULT: 0.5 # Encoder: 10% of base LR
+    CHANGE_ENCODER_LR_MULT: 1.0 # Change encoders: 50% of base LR
+    DECODER_EMBED_LR_MULT: 1.0 # Decoder embed: 50% of base LR
+    DECODER_LR_MULT: 1.0 # Decoder: 100% of base LR
+    GRAD_CLIP: 1.0
+    ACCUMULATION_STEPS: 0
+    PRINT_FREQ: 20
     OPTIMIZER: adamw
     EPS: 1e-8
     BETAS:
@@ -80,12 +86,10 @@ FINETUNE:
     SCHEDULER: cosine
     STEP_SIZE: 30
     GAMMA: 0.1
-    PATIENCE: 7
-    CHECKPOINT_PATH: /media/krishnan/GFM/Checkpoint_hub/chk_pt.pth
+    PATIENCE: 50
+    LOGGER_PATH: /media/krishnan/GFM/Checkpoint_hub
+    BEST_CHECKPOINT_PATH: /media/krishnan/GFM/Checkpoint_hub/best_chk_pt.pth
+    LAST_CHECKPOINT_PATH: /media/krishnan/GFM/Checkpoint_hub/last_chk_pt.pth
+    USE_PRETRAINED_WEIGHT: False
+    PRETRAINED_WEIGHT: /media/krishnan/GFM/Checkpoint_hub/main_checkpoint/best_chk_pt.pth
 
-#############################################################################
-#TRAINED CHECKPOINTS
-#############################################################################
-
-PRETRAINED_WEIGHT: /media/krishnan/GFM
-FINETUNE_WEIGHT_S2WCD: /media/krishnan/GFM

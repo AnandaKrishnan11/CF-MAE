@@ -92,7 +92,7 @@ class CF_MAE(nn.Module):
             nn.GELU(),
             nn.Linear(self.embed_dim, self.embed_dim),
         )
-        self.pre_projection._is_decoder = True 
+        self.pre_projection._is_init = True 
 
         
         self.post_projection = nn.Sequential(
@@ -100,20 +100,20 @@ class CF_MAE(nn.Module):
             nn.GELU(),
             nn.Linear(self.embed_dim, self.embed_dim),
         )
-        self.post_projection._is_decoder = True 
+        self.post_projection._is_init = True 
 
         self.change_encoder = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
             nn.GELU(),
             nn.Linear(self.embed_dim * 2, self.embed_dim),
         )
-        self.change_encoder._is_decoder = True 
+        self.change_encoder._is_init = True 
         
         self.decoder_embed = nn.Linear(
             self.embed_dim,
             self.embed_dim
         )
-        self.decoder_embed._is_decoder = True 
+        self.decoder_embed._is_init = True 
         
         self.mask_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
         
@@ -122,7 +122,7 @@ class CF_MAE(nn.Module):
             img_size=self.img_size,
             patch_size=self.patch_size
         )
-        self.decoder._is_decoder = True 
+        self.decoder._is_init = True 
         
         self.initialize_weights()
     
@@ -134,7 +134,7 @@ class CF_MAE(nn.Module):
         self.apply(self._init_weights)
     
     def _init_weights(self, m):
-        if not hasattr(m, "_is_decoder"):
+        if not hasattr(m, "_is_init"):
             return  # skiping timm encoder pretrained weights init 
         if isinstance(m, nn.Linear):
             nn.init.xavier_uniform_(m.weight)

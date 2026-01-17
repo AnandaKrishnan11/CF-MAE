@@ -60,11 +60,11 @@ def main():
       num_steps = len(train_loader)
       min_loss = 0 #We are only saving the best model
 
-      batch_time = AverageMeter()
-      loss_meter = AverageMeter()
-
       model.train()
+      optimizer.zero_grad()
       for epoch in tqdm(range(start_epoch,total_epochs),total=total_epochs):
+            loss_meter = AverageMeter()
+            batch_time = AverageMeter()
             e_start = time.time()
 
             for idx,(pre,post) in enumerate(train_loader,start=1):  

@@ -44,29 +44,30 @@ PRETRAIN:
 # ====================================================================
 
 FINETUNE:
-  NAME: S2WCD # Sentinel-2 Wildfire Change Detection (S2-WCD)
-  PATH:
-  IMAGE_SIZE: 224
-  NO_CHANNELS: 3
-
-  BATCH_SIZE:
-  NUM_WORKERS: 8
-  PIN_MEMORY: True
-  SHUFFLE: True
-
-  # Auxiliary data infos
-  TOTAL_SAMPLES:
-  DATA_MODALITY: optical
-  TOTAL_SIZE:
-
-  # Normalization stats
-  PRE:
-    MEAN: []
-    STD: []
-  POST:
-    MEAN: []
-    STD: []
-
-# LANDSLIDE
-# DAMAGE ASSESSMENT
-# FLOODING
+  S2WCD:
+    NAME: S2WCD # Sentinel-2 Wildfire Change Detection (S2-WCD)
+    PATH: /media/krishnan/GFM/finetune_data/S2_WCD
+    IMAGE_SIZE: 224
+    NUM_CHANNELS: 3
+    BATCH_SIZE: 8
+    NUM_WORKERS: 8
+    PIN_MEMORY: True
+    SHUFFLE: False
+  DSIFN:
+    NAME: DSIFN # Building Change
+    PATH: /media/krishnan/GFM/finetune_data/DSIFN
+    IMAGE_SIZE: 224
+    NUM_CHANNELS: 3
+    BATCH_SIZE: 16
+    NUM_WORKERS: 8
+    PIN_MEMORY: True
+    SHUFFLE: False
+  MAUI:
+    NAME: MAUI # Building Damage Assessment
+    PATH: /media/krishnan/GFM/finetune_data/MAUI
+    IMAGE_SIZE: 224
+    NUM_CHANNELS: 3
+    BATCH_SIZE: 8
+    NUM_WORKERS: 8
+    PIN_MEMORY: True
+    SHUFFLE: False

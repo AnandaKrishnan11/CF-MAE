@@ -3,14 +3,19 @@ from yaml.loader import FullLoader
 
 
 
-def data_config(is_pretrain=True):
+def data_config(is_pretrain=True,data=None):
     with open("configs/data_config.yaml", "r") as d:
         data_config = yaml.load(d, Loader=FullLoader)
 
         if is_pretrain:
             return data_config['PRETRAIN']
         else:
-            return data_config['FINETUNE']
+            if data == 'S2WCD':
+                return data_config['FINETUNE']['S2WCD']
+            elif data == 'DSIFN':
+                return data_config['FINETUNE']['DSIFN']
+            elif data == 'MAUI':
+                return data_config['FINETUNE']['MAUI']
         
 
 def model_config(is_pretrain=True):
@@ -23,9 +28,9 @@ def model_config(is_pretrain=True):
             return model_config['FINETUNE']
         
 
-def load_config(is_pretrain=True,type='data'):
+def load_config(data=None,is_pretrain=True,type='data'):
     if type == 'data':
-        return data_config(is_pretrain)
+        return data_config(is_pretrain,data)
     elif type == 'model':
         return model_config(is_pretrain)
     else:
