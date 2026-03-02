@@ -333,7 +333,7 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3)
         )
-        self.change_encoder1._is_init = True
+        #self.change_encoder1._is_init = True
 
         self.change_encoder2 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -342,7 +342,7 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3),
         )
-        self.change_encoder2._is_init = True
+        #self.change_encoder2._is_init = True
 
         self.change_encoder3 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -351,7 +351,7 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3))
         
-        self.change_encoder3._is_init = True
+        #self.change_encoder3._is_init = True
 
         self.change_encoder4 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -360,14 +360,14 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3)
         )
-        self.change_encoder4._is_init = True
+        #self.change_encoder4._is_init = True
 
         # Decoder embed
         self.decoder_embed = nn.Sequential(nn.Linear(self.embed_dim ,self.embed_dim ),
                                            nn.GELU(),
                                            nn.Dropout(0.2),
                                             nn.Linear(self.embed_dim, self.embed_dim))
-        self.decoder_embed._is_init = True
+        #self.decoder_embed._is_init = True
         
         self.initialize_weights()
 
@@ -639,15 +639,16 @@ class MS_CFT4Segm(nn.Module):
         print(f"[INFO]--Building Version {self.version} for segmentation")
 
         if self.version == "v1":
-            self.encoderv1  = MS_CFTev1(config)
-            self.decoderv1 = MS_CFTdv1(config)
+            self.encoder  = MS_CFTev1(config)
+            self.decoder = MS_CFTdv1(config)
         
         elif self.version == "v2":
-            self.encoderv2  = MS_CFTev2(config)
-            self.decoderv2 = MS_CFTdv2(config)
+            self.encoder  = MS_CFTev2(config)
+            self.decoder = MS_CFTdv2(config)
+
         elif self.version == "v3":
-            self.encoderv3 = MS_CFTev3(config)
-            self.decoderv3 = MS_CFTdv1(config)
+            self.encoder = MS_CFTev3(config)
+            self.decoder = MS_CFTdv1(config)
 
     @torch.jit.ignore
     def no_weight_decay(self):
@@ -656,14 +657,14 @@ class MS_CFT4Segm(nn.Module):
     def forward(self, pre, post):
 
         if self.version == "v1":
-            z_dec = self.encoderv1(pre,post)
-            pred = self.decoderv1(z_dec)
+            z_dec = self.encoder(pre,post)
+            pred = self.decoder(z_dec)
         elif self.version == "v2":
-            z_dec,skip1,skip2,skip3 = self.encoderv2(pre,post)
-            pred = self.decoderv2(z_dec,skip1,skip2,skip3)
+            z_dec,skip1,skip2,skip3 = self.encoder(pre,post)
+            pred = self.decoder(z_dec,skip1,skip2,skip3)
         elif self.version == "v3":
-            z_dec = self.encoderv3(pre,post)
-            pred = self.decoderv1(z_dec)
+            z_dec = self.encoder(pre,post)
+            pred = self.decoder(z_dec)
 
         return pred
     

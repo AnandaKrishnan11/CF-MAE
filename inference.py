@@ -9,7 +9,7 @@ from utils import image
 
 def main():
       
-      data_config = load_config(is_pretrain=False,type='data',data="DSIFN")
+      data_config = load_config(is_pretrain=False,type='data',data="S2WCD")
       model_config = load_config(is_pretrain=False,type='model')
 
       device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -24,22 +24,19 @@ def main():
 
       
       checkpoint = torch.load(model_config['TRAINING']['BEST_CHECKPOINT_PATH'], map_location="cpu")
-      new_check = {}
-      for k,v in checkpoint["model"].items():
-          if k.startswith('encoder4segm'):
-               new = k.replace('encoder4segm','encoderv2')
-               new_check[new] = v
+      #new_check = {}
+      #for k,v in checkpoint["model"].items():
+          #if k.startswith('encoder4segm'):
+               #new = k.replace('encoder4segm','encoderv2')
+               #new_check[new] = v
 
-          elif k.startswith('decoder4segm'):
-               new = k.replace('decoder4segm','decoderv2')
-               new_check[new] = v
+          #elif k.startswith('decoder4segm'):
+               #new = k.replace('decoder4segm','decoderv2')
+               #new_check[new] = 
 
-
-      missing,unexpected = model.load_state_dict(new_check,strict=True)
+      missing,unexpected = model.load_state_dict(checkpoint['model'],strict=True)
       print(f'[MISSING]---{missing}')
       print(f'[UNEXPECTED]---{unexpected}')
-      #except Exception as e:
-        #print(f'Error-------------{e}')
 
       model = model.to(device)
       logger.info(str(model))
@@ -48,7 +45,7 @@ def main():
       print(f"[INFO]----Model initialized with {n_parameters} number of paramter")
       logger.info(f"number of params: {n_parameters}")
 
-      test_loader = build_loader(data_config,logger,run ='test',data="DSIFN")
+      test_loader = build_loader(data_config,logger,run ='test',data="S2WCD")
       img = image()
       metric = metric_calculation()
 

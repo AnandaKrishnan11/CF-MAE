@@ -52,7 +52,7 @@ FINETUNE:
     BATCH_SIZE: 8
     NUM_WORKERS: 8
     PIN_MEMORY: True
-    SHUFFLE: False
+    SHUFFLE: True
   DSIFN:
     NAME: DSIFN # Building Change
     PATH: /media/krishnan/GFM/finetune_data/DSIFN

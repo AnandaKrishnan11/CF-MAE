@@ -18,7 +18,7 @@ import datetime
 def main():
       
       #Building config for model and data
-      data_config = load_config(is_pretrain=False,type='data',data='DSIFN')
+      data_config = load_config(is_pretrain=False,type='data',data='S2WCD')
       model_config = load_config(is_pretrain=False,type='model')
 
       device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -46,8 +46,8 @@ def main():
       print(f"[INFO]----Model initialized with {n_parameters} number of paramter")
       logger.info(f"number of params: {n_parameters}")
 
-      train_loader = build_loader(data_config,logger,run='train',data='DSIFN')
-      val_loader = build_loader(data_config,logger,run='val',data='DSIFN')
+      train_loader = build_loader(data_config,logger,run='train',data='S2WCD')
+      val_loader = build_loader(data_config,logger,run='val',data='S2WCD')
 
       logger.info(f"[INFO]----Total number of Images used {len(train_loader.dataset)}")
       logger.info(f"[INFO]----Image size {data_config['IMAGE_SIZE']}")

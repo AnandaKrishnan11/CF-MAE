@@ -144,7 +144,7 @@ def build_finetune_optimizer(config, model, logger):
         #Encoder
         encoder_params = []
         encoder_no_decay = []
-        for name, param in model.encoderv2.encoder.named_parameters():
+        for name, param in model.encoder.encoder.named_parameters():
             if not param.requires_grad:
                 continue
             if len(param.shape) == 1 or name.endswith(".bias") or "norm" in name or skip_keyword in name:
@@ -159,7 +159,7 @@ def build_finetune_optimizer(config, model, logger):
         change_encoder_params = []
         change_encoder_no_decay = []
         for i in range(1, 5):
-            ce = getattr(model.encoderv2, f'change_encoder{i}')
+            ce = getattr(model.encoder, f'change_encoder{i}')
             for name, param in ce.named_parameters():
                 if not param.requires_grad:
                     continue
@@ -173,7 +173,7 @@ def build_finetune_optimizer(config, model, logger):
         #Decoder embed
         decoder_embed_params = []
         decoder_embed_no_decay = []
-        for name, param in model.encoderv2.decoder_embed.named_parameters():
+        for name, param in model.encoder.decoder_embed.named_parameters():
             if not param.requires_grad:
                 continue
             if len(param.shape) == 1 or name.endswith(".bias"):
@@ -186,7 +186,7 @@ def build_finetune_optimizer(config, model, logger):
         #Segmentation decoder
         decoder_params = []
         decoder_no_decay = []
-        for name, param in model.decoderv2.named_parameters():
+        for name, param in model.decoder.named_parameters():
             if not param.requires_grad:
                 continue
             if len(param.shape) == 1 or name.endswith(".bias") or "norm" in name:

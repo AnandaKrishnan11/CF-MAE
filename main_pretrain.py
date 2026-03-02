@@ -19,8 +19,11 @@ def main():
       data_config = load_config(is_pretrain=True,type='data')
       model_config = load_config(is_pretrain=True,type='model')
 
-      output_dir = data_config['PATH']
+      output_dir = model_config["TRAINING"]['LOGGER_PATH']
       logger = create_logger(output_dir, dist_rank=0, name='pretrain_logger')
+
+      logger.info(f'Data Config - {data_config}')
+      logger.info(f'Model Config - {model_config}')
       
       logger.info(f"Creating model:{model_config['TYPE']} style--{model_config['NAME']}")
       print(f"[INFO]---Creating model:{model_config['TYPE']} style--{model_config['NAME']}")
@@ -44,14 +47,14 @@ def main():
       lr_scheduler = build_scheduler(model_config,logger, optimizer,n_iter_per_epoch=len(train_loader))
 
       #Resume model training
-      if model_config['TRAINING']['AUTO_RESUME'] and os.path.isfile(model_config['TRAINING']['CHECKPOINT_PATH']):
-            print(f"[INFO]----Resuming training from checkpoint: {model_config['TRAINING']['CHECKPOINT_PATH']}")
-            checkpoint = torch.load(model_config['TRAINING']['CHECKPOINT_PATH'], map_location="cpu")
+      if model_config['TRAINING']['AUTO_RESUME'] and os.path.isfile(model_config['TRAINING']['LAST_CHECKPOINT_PATH']):
+            print(f"[INFO]----Resuming training from checkpoint: {model_config['TRAINING']['LAST_CHECKPOINT_PATH']}")
+            checkpoint = torch.load(model_config['TRAINING']['LAST_CHECKPOINT_PATH'], map_location="cpu")
             model.load_state_dict(checkpoint["model"])
             optimizer.load_state_dict(checkpoint["optimizer"])
             lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
             model_config['TRAINING']['START_EPOCH'] = checkpoint["epoch"] + 1
-            write_config(model_config,type="model")
+            write_config(model_config,type='model')
             print(f"[INFO]----Restarting training at epoch: {model_config['TRAINING']['START_EPOCH']}")
 
       #train
@@ -112,13 +115,17 @@ def main():
                         f'loss {loss_meter.val:.4f} ({loss_meter.avg:.4f})\t'
                         f'mem {memory_used:.0f}MB')
             
-            if min_loss==0 or min_loss > loss_meter.avg:
+            if min_loss==0 or min_loss < loss_meter.avg:
                   min_loss = loss_meter.avg
                   save_state = {'model': model.state_dict(),'optimizer': optimizer.state_dict(), 'lr_scheduler': lr_scheduler.state_dict(),'epoch': epoch}
-                  torch.save(save_state,model_config['TRAINING']['CHECKPOINT_PATH'])
-                  logger.info(f"{model_config['TRAINING']['CHECKPOINT_PATH']} saved !!!")
+                  torch.save(save_state,model_config['TRAINING']['BEST_CHECKPOINT_PATH'])
+                  logger.info(f"[BEST CHECK POINT]--{model_config['TRAINING']['BEST_CHECKPOINT_PATH']} saved !!!")
+                  torch.save(save_state,model_config['TRAINING']['LAST_CHECKPOINT_PATH'])
+                  logger.info(f"[LAST CHECK POINT]--{model_config['TRAINING']['LAST_CHECKPOINT_PATH']} saved !!!")
             else:
-                  continue
+                  torch.save(save_state,model_config['TRAINING']['LAST_CHECKPOINT_PATH'])
+                  logger.info(f"[LAST CHECK POINT]--{model_config['TRAINING']['LAST_CHECKPOINT_PATH']} saved !!!")
+                  
             epoch_time = time.time() - e_start
             logger.info(f"EPOCH {epoch} training takes {datetime.timedelta(seconds=int(epoch_time))}")
             print(f"[INFO][EPOCH]---{epoch}|[TIME]---{datetime.timedelta(seconds=int(epoch_time))}|[LOSS]---{loss_meter.avg:.4f}")

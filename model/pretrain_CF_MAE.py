@@ -86,6 +86,7 @@ class CF_MAE(nn.Module):
         ) 
         # here what I am thinking is if the encoder we are creating here is pretrained, we can freez the weights and train the projector and chnage module
         # also the same for the decoder if its the standard decoder already used
+        self.encoder._is_init = True 
 
         self.pre_projection = nn.Sequential(
             nn.Linear(self.embed_dim, self.embed_dim),

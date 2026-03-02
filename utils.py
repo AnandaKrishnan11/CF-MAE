@@ -77,7 +77,7 @@ def load_pretrained_cfmae(model, config):
                     encoder_state_dict[k] = v
             
             # Load encoder weights
-            missing, unexpected = model.encoderv2.encoder.load_state_dict(
+            missing, unexpected = model.encoder.encoder.load_state_dict(
                 encoder_state_dict, strict=False
             )
             print("Missing keys:", missing)
@@ -106,10 +106,10 @@ def load_pretrained_cfmae(model, config):
                     print(f"  ✓ Initialized change encoder with pretrained Linear layers")
                 
                 # Initialize all 4 change encoders
-                init_change_encoder(model.encoderv2.change_encoder1)
-                init_change_encoder(model.encoderv2.change_encoder2)
-                init_change_encoder(model.encoderv2.change_encoder3)
-                init_change_encoder(model.encoderv2.change_encoder4)
+                init_change_encoder(model.encoder.change_encoder1)
+                init_change_encoder(model.encoder.change_encoder2)
+                init_change_encoder(model.encoder.change_encoder3)
+                init_change_encoder(model.encoder.change_encoder4)
                 
                 print("✓ Initialized all change_encoder modules (1-4) from CF-MAE")
 
@@ -132,7 +132,7 @@ def load_pretrained_cfmae(model, config):
                         new_key = f"3.{key}"
                         new_decoder_state[new_key] = value
                     
-                    missing_dec, unexpected_dec = model.encoderv2.decoder_embed.load_state_dict(
+                    missing_dec, unexpected_dec = model.encoder.decoder_embed.load_state_dict(
                         new_decoder_state, strict=False
                     )
                     print("✓ Loaded decoder_embed weights (first and last Linear layers)")
@@ -176,11 +176,11 @@ class image:
             axs[2].set_title("GT")
             axs[2].axis("off")
             axs[3].imshow(pred, cmap ="gray")
-            axs[3].set_title("MS-CFT")
+            axs[3].set_title("MS-CFT_v3")
             axs[3].axis("off")
 
             plt.tight_layout()
-            out_dir = '/media/krishnan/GFM/SEGMENTATION IMAGES/MY_MODELS/DSIFN/MS-CFT'
+            out_dir = '/media/krishnan/GFM/SEGMENTATION IMAGES/MY_MODELS/MAUI/MS-CFT_v3'
             os.makedirs(out_dir,exist_ok=True)
             plt.savefig(f'{out_dir}/img{self.id}.png',dpi=400)
             self.id+=1
