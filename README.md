@@ -66,8 +66,6 @@ Quantitative evaluation (F1 / IoU) against CNN, transformer, and foundation-mode
 | **MS-CFT (SatMAE)**   | 0.78 | 0.71 | 0.81 | 0.61 | 0.69 | 0.60 |
 | **MS-CFT (PANDORA)**  | **0.94** | 0.84 | **0.93** | **0.81** | **0.82** | **0.74** |
 
-CFT-based models trained with PANDORA pre-training achieve consistently competitive and, in most cases, superior performance while converging faster than existing approaches.
-
 ---
 
 ## Installation
