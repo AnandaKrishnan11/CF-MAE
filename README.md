@@ -9,28 +9,19 @@
 
 ## Overview
 
-Most remote sensing vision foundation models are pre-trained on single-temporal imagery, where change-related signals are only learned later during downstream adaptation. This has two main drawbacks: it requires substantial data to adapt, and it struggles to learn semantically meaningful changes under distribution shifts between pre- and post-event images.
+**CF-MAE** addresses this by extending masked autoencoding into a bi-temporal setting, learning **change-aware representations directly during pre-training**.
 
-**CF-MAE** addresses this by extending masked autoencoding into a bi-temporal setting, learning **change-aware representations directly during pre-training**. The framework consists of:
+For the downstream task, we introduce the **Change-Fused Transformer (CFT)** in three variants:
 
-- A shared ViT-Base encoder
-- Two independent MLP projection heads for pre- and post-event embeddings
-- A learnable **change fusion module** that combines embeddings with their element-wise differences
-- A lightweight convolutional decoder that reconstructs the post-event image over masked patches
-
-For the downstream task, we introduce the **Change-Fused Transformer (CFT)** in two variants:
-
-- **S-CFT** — single-scale, using change features directly from the fusion module
-- **MS-CFT** — multi-scale, fusing change features across encoder stages with skip connections
-
-Change detection is treated as a binary segmentation task, producing a change probability map at the original image resolution.
-
+- **CFT v1 (S-CFT)** — single-scale, using change features directly from the fusion module
+- **cft v2 (MS-CFT)** — multi-scale, fusing change features across encoder stages with skip connections
+- **cft v3** — multi-scale, fusing change features across encoder stages directly to decoder after concaténation.
 ---
 
 ## Architecture
 
 <p align="center">
-  <img src="assets/cf_mae_architecture.png" width="750" alt="CF-MAE architecture overview">
+  <img src="assets/CF_MAE.png" width="750" alt="CF-MAE architecture overview">
 </p>
 
 The change fusion module concatenates pre- and post-event embeddings together with their element-wise difference, then passes them through two linear layers with a GELU activation:
