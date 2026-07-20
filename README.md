@@ -1,4 +1,4 @@
-# CF-MAE: A Change-Fused Masked Autoencoder for Earth Observation-Based Multi-Hazard Change Detection
+## CF-MAE: A Change-Fused Masked Autoencoder for Earth Observation-Based Multi-Hazard Change Detection
 
 Official implementation of **CF-MAE**, a change-aware self-supervised pre-training framework for multi-hazard change detection from bi-temporal remote sensing imagery.
 
