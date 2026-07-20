@@ -9,7 +9,7 @@
 
 ## Overview
 
-CF-MAE addresses this by extending masked autoencoding into a bi-temporal setting, learning change-aware representations directly during pre-training.
+CF-MAE addresses change detection by extending masked autoencoding into a bi-temporal setting, learning change-aware representations directly during pre-training.
 
 For the downstream task, we introduce the Change-Fused Transformer (CFT) in three variants:
 
