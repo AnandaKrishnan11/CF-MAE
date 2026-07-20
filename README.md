@@ -151,13 +151,6 @@ If you use this work, please cite:
 
 ---
 
-## Authors
-
-Ananda Krishnan, Getachew Workineh Gella, Bruno Menini Matosak, Stefan Lang
-University of Salzburg, Salzburg, Austria
-
----
-
 ## License
 
 Released under the MIT License. See [`LICENSE`](LICENSE) for details.
