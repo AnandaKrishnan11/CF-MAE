@@ -1,8 +1,7 @@
 ## CF-MAE: A Change-Fused Masked Autoencoder for Earth Observation-Based Multi-Hazard Change Detection
-
-Official implementation of **CF-MAE**, a change-aware self-supervised pre-training framework for multi-hazard change detection from bi-temporal remote sensing imagery.
-
-> Accepted at **IGARSS 2026** — IEEE International Geoscience and Remote Sensing Symposium.
+> [Ananda Krishnan](https://scholar.google.com/citations?user=YWZ3kKsAAAAJ&hl=en), Getachew Workineh Gella, Bruno Menini Matosak, Stefan Lang
+>Official PyTorch implementation of CF-MAE, a change-aware self-supervised pre-training framework for multi-hazard change detection from bi-temporal remote sensing imagery.
+> Presented at **IGARSS 2026** — Washington, D.C
 
 ---
 
