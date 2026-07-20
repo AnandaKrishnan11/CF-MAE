@@ -9,13 +9,13 @@
 
 ## Overview
 
-**CF-MAE** addresses this by extending masked autoencoding into a bi-temporal setting, learning **change-aware representations directly during pre-training**.
+CF-MAE addresses this by extending masked autoencoding into a bi-temporal setting, learning change-aware representations directly during pre-training.
 
-For the downstream task, we introduce the **Change-Fused Transformer (CFT)** in three variants:
+For the downstream task, we introduce the Change-Fused Transformer (CFT) in three variants:
 
 - **CFT v1 (S-CFT)** — single-scale, using change features directly from the fusion module
-- **cft v2 (MS-CFT)** — multi-scale, fusing change features across encoder stages with skip connections
-- **cft v3** — multi-scale, fusing change features across encoder stages directly to decoder after concaténation.
+- **CFT v2 (MS-CFT)** — multi-scale, fusing change features across encoder stages with skip connections
+- **CFT v3** — multi-scale, fusing change features across encoder stages directly to decoder after concatenation.
 ---
 
 ## Architecture
@@ -24,19 +24,11 @@ For the downstream task, we introduce the **Change-Fused Transformer (CFT)** in 
   <img src="assets/CF_MAE.png" width="750" alt="CF-MAE architecture overview">
 </p>
 
-The change fusion module concatenates pre- and post-event embeddings together with their element-wise difference, then passes them through two linear layers with a GELU activation:
-
-```
-z_delta = Linear(GELU(Linear(Concat(z_t1, z_t2, z_t1 - z_t2))))
-```
-
-Reconstruction is supervised with an MSE loss computed only over masked patches, following the standard MAE strategy.
-
 ---
 
 ## Dataset
 
-Pre-training uses **PANDORA** (Paired Natural Disaster Observations for Reconstruction and Analysis), a multi-source, multi-modal dataset compiled from openly available benchmarks. It contains **376,634 paired pre-/post-disaster scenes**, chipped to 3 × 224 × 224.
+Pre-training uses **PANDORA** (Paired Natural Disaster Observations for Reconstruction and Analysis), a multi-source, multi-modal dataset compiled from openly available benchmarks. It contains 376,634 paired pre-/post-disaster scenes, chipped to 3 × 224 × 224.
 
 | Dataset            | Images  | Modality |
 |--------------------|---------|----------|
