@@ -1,370 +1,136 @@
-# --------------------------------------------------------
-# Based from SimMIM codebase
-# https://github.com/microsoft/SimMIM
-# --------------------------------------------------------
-
-from torch import optim as optim
 import torch
+
+NO_DECAY_KEYWORDS = ("pos_embed", "cls_token", "norm")
+
+LR_RULES = (
+    ("encoder.encoder.", "ENCODER_LR_MULT", 0.1, "encoder_backbone"),
+    ("encoder.change_encoder", "CHANGE_ENCODER_LR_MULT", 0.5, "change_encoder"),
+    ("encoder.decoder_embed", "DECODER_EMBED_LR_MULT", 0.5, "decoder_embed"),
+    ("encoder.", "CHANGE_ENCODER_LR_MULT", 0.5, "encoder_head"),  # v1 pre/post projection
+    ("decoder.", "DECODER_LR_MULT", 1.0, "segmentation_decoder"),
+)
 
 
 def build_optimizer(config, model, logger, is_pretrain=True):
-
-    if is_pretrain: 
+    if is_pretrain:
         return build_pretrain_optimizer(config, model, logger)
-    else:
-        return build_finetune_optimizer(config, model, logger) 
+    return build_finetune_optimizer(config, model, logger)
 
 
-def build_finetune_optimizer(config, model, logger): 
-    """
-    Create optimizer with layer-wise learning rates for segmentation finetuning
-    """
-    logger.info('>>>>>>>>>> Build Optimizer for Finetuning Stage')
-    
-    base_lr = float(config['TRAINING']['LEARNING_RATE'])
-    weight_decay = float(config['TRAINING']['WEIGHT_DECAY'])
-    
-    model_version = config['VERSION']
-
-    encoder_lr_mult = config['TRAINING'].get('ENCODER_LR_MULT', 0.1)
-    change_encoder_lr_mult = config['TRAINING'].get('CHANGE_ENCODER_LR_MULT', 0.5)
-    decoder_embed_lr_mult = config['TRAINING'].get('DECODER_EMBED_LR_MULT', 0.5)
-    decoder_lr_mult = config['TRAINING'].get('DECODER_LR_MULT', 1.0)
-
-    if hasattr(model,'no_weight_decay'):
-            skip_keyword = model.no_weight_decay()
-
-    if model_version =="v1":
-
-        #Encoder
-        encoder_params = []
-        encoder_no_decay = []
-        for name,param in model.encoderv1.encoder.named_parameters():
-            if not param.requires_grad:
-                continue
-            if len(param.shape) == 1 or name.endswith(".bias") or "norm" in name or skip_keyword in name:
-                encoder_no_decay.append(param)
-            else:
-                encoder_params.append(param)
-
-        logger.info(f'ENCODER WITH DECAY--{encoder_params}')
-
-        #Single Change encoder 
-        change_encoder_params = []
-        change_encoder_no_decay = []       
-        for name, param in model.encoderv1.change_encoder.named_parameters():
-            if not param.requires_grad:
-                continue
-            if len(param.shape) == 1 or name.endswith(".bias"):
-                change_encoder_no_decay.append(param)
-            else:
-                change_encoder_params.append(param)
-
-        logger.info(f'CHANGE ENCODER WITH DECAY--{change_encoder_params}')
-
-        #Decoder embed
-        decoder_embed_params = []
-        decoder_embed_no_decay = []
-        for name, param in model.encoderv1.decoder_embed.named_parameters():
-            if not param.requires_grad:
-                continue
-            if len(param.shape) == 1 or name.endswith(".bias"):
-                decoder_embed_no_decay.append(param)
-            else:
-                decoder_embed_params.append(param)
-
-        logger.info(f'MLP PROJ WITH DECAY--{decoder_embed_params}')
-        
-        #Segmentation decoder
-        decoder_params = []
-        decoder_no_decay = []
-        for name, param in model.decoderv1.named_parameters():
-            if not param.requires_grad:
-                continue
-            if len(param.shape) == 1 or name.endswith(".bias") or "norm" in name:
-                decoder_no_decay.append(param)
-            else:
-                decoder_params.append(param)
-
-        logger.info(f'DECODER WITH DECAY--{decoder_params}')
-        
-        param_groups = [
-            {
-                'params': encoder_params,
-                'lr': base_lr * encoder_lr_mult,
-                'weight_decay': weight_decay,
-                'name': 'encoder_backbone'
-            },
-            {
-                'params': encoder_no_decay,
-                'lr': base_lr * encoder_lr_mult,
-                'weight_decay': 0.0,
-                'name': 'encoder_backbone_no_decay'
-            },
-            {
-                'params': change_encoder_params,
-                'lr': base_lr * change_encoder_lr_mult,
-                'weight_decay': weight_decay,
-                'name': 'change_encoders'
-            },
-            {
-                'params': change_encoder_no_decay,
-                'lr': base_lr * change_encoder_lr_mult,
-                'weight_decay': 0.0,
-                'name': 'change_encoders_no_decay'
-            },
-            {
-                'params': decoder_embed_params,
-                'lr': base_lr * decoder_embed_lr_mult,
-                'weight_decay': weight_decay,
-                'name': 'decoder_embed'
-            },
-            {
-                'params': decoder_embed_no_decay,
-                'lr': base_lr * decoder_embed_lr_mult,
-                'weight_decay': 0.0,
-                'name': 'decoder_embed_no_decay'
-            },
-            {
-                'params': decoder_params,
-                'lr': base_lr * decoder_lr_mult,
-                'weight_decay': weight_decay,
-                'name': 'segmentation_decoder'
-            },
-            {
-                'params': decoder_no_decay,
-                'lr': base_lr * decoder_lr_mult,
-                'weight_decay': 0.0,
-                'name': 'segmentation_decoder_no_decay'
-            }
-        ]
-            
-    else:
-
-        #Encoder
-        encoder_params = []
-        encoder_no_decay = []
-        for name, param in model.encoder.encoder.named_parameters():
-            if not param.requires_grad:
-                continue
-            if len(param.shape) == 1 or name.endswith(".bias") or "norm" in name or skip_keyword in name:
-                encoder_no_decay.append(param)
-            else:
-                encoder_params.append(param)
-
-        logger.info(f'ENCODER WITH DECAY--{encoder_params}')
-        
-        
-        #Change encoders 1-4 
-        change_encoder_params = []
-        change_encoder_no_decay = []
-        for i in range(1, 5):
-            ce = getattr(model.encoder, f'change_encoder{i}')
-            for name, param in ce.named_parameters():
-                if not param.requires_grad:
-                    continue
-                if len(param.shape) == 1 or name.endswith(".bias"):
-                    change_encoder_no_decay.append(param)
-                else:
-                    change_encoder_params.append(param)
-
-        logger.info(f'CHANGE ENCODER WITH DECAY--{change_encoder_params}')
-        
-        #Decoder embed
-        decoder_embed_params = []
-        decoder_embed_no_decay = []
-        for name, param in model.encoder.decoder_embed.named_parameters():
-            if not param.requires_grad:
-                continue
-            if len(param.shape) == 1 or name.endswith(".bias"):
-                decoder_embed_no_decay.append(param)
-            else:
-                decoder_embed_params.append(param)
-
-        logger.info(f'MLP PROJ WITH DECAY--{decoder_embed_params}')
-        
-        #Segmentation decoder
-        decoder_params = []
-        decoder_no_decay = []
-        for name, param in model.decoder.named_parameters():
-            if not param.requires_grad:
-                continue
-            if len(param.shape) == 1 or name.endswith(".bias") or "norm" in name:
-                decoder_no_decay.append(param)
-            else:
-                decoder_params.append(param)
-
-        logger.info(f'DECODER WITH DECAY--{decoder_params}')
-        
-        param_groups = [
-            {
-                'params': encoder_params,
-                'lr': base_lr * encoder_lr_mult,
-                'weight_decay': weight_decay,
-                'name': 'encoder_backbone'
-            },
-            {
-                'params': encoder_no_decay,
-                'lr': base_lr * encoder_lr_mult,
-                'weight_decay': 0.0,
-                'name': 'encoder_backbone_no_decay'
-            },
-            {
-                'params': change_encoder_params,
-                'lr': base_lr * change_encoder_lr_mult,
-                'weight_decay': weight_decay,
-                'name': 'change_encoders'
-            },
-            {
-                'params': change_encoder_no_decay,
-                'lr': base_lr * change_encoder_lr_mult,
-                'weight_decay': 0.0,
-                'name': 'change_encoders_no_decay'
-            },
-            {
-                'params': decoder_embed_params,
-                'lr': base_lr * decoder_embed_lr_mult,
-                'weight_decay': weight_decay,
-                'name': 'decoder_embed'
-            },
-            {
-                'params': decoder_embed_no_decay,
-                'lr': base_lr * decoder_embed_lr_mult,
-                'weight_decay': 0.0,
-                'name': 'decoder_embed_no_decay'
-            },
-            {
-                'params': decoder_params,
-                'lr': base_lr * decoder_lr_mult,
-                'weight_decay': weight_decay,
-                'name': 'segmentation_decoder'
-            },
-            {
-                'params': decoder_no_decay,
-                'lr': base_lr * decoder_lr_mult,
-                'weight_decay': 0.0,
-                'name': 'segmentation_decoder_no_decay'
-            }
-        ]
-        
-    # Create optimizer
-    opt_lower = config['TRAINING']['OPTIMIZER'].lower()
-    
-    if opt_lower == 'adamw':
-        optimizer = torch.optim.AdamW(
-            param_groups,
-            eps=float(config['TRAINING'].get('EPS', 1e-8)),
-            betas=tuple(config['TRAINING'].get('BETAS', (0.9, 0.999)))
-        )
-    elif opt_lower == 'sgd':
-        optimizer = torch.optim.SGD(
-            param_groups,
-            momentum=config['TRAINING'].get('MOMENTUM', 0.9),
-            nesterov=True
-        )
-    else:
-        raise NotImplementedError(f"Optimizer {opt_lower} not implemented")
-    
-    # Log parameter groups
-    logger.info("\n[Optimizer] Parameter groups:")
-    total_params = 0
-    for group in param_groups:
-        n_params = sum(p.numel() for p in group['params'])
-        total_params += n_params
-        if n_params > 0:  # Only log non-empty groups
-            wd_str = f", WD={group['weight_decay']:.2e}" if group['weight_decay'] > 0 else ", no WD"
-            logger.info(f"  • {group['name']}: {n_params:,} params, LR={group['lr']:.2e}{wd_str}")
-    
-    logger.info(f"\nTotal trainable parameters: {total_params:,}")
-    logger.info(f'>>>>>>>>>> Created {opt_lower.upper()} Optimizer for Finetuning Stage')
-    
-    return optimizer
+def is_no_decay(name, param, extra_keywords=()):
+    if param.ndim <= 1 or name.endswith(".bias"):
+        return True
+    keywords = tuple(NO_DECAY_KEYWORDS) + tuple(extra_keywords)
+    return any(keyword in name for keyword in keywords)
 
 
-def build_pretrain_optimizer(config, model, logger):
-    """
-    Build optimizer for pretraining stage (MAE-style)
-    """
-    logger.info('>>>>>>>>>> Build Optimizer for Pre-training Stage')
+def model_keywords(model):
+    keywords = []
+    for attr in ("no_weight_decay", "no_weight_decay_keywords"):
+        if hasattr(model, attr):
+            value = getattr(model, attr)()
+            keywords.extend([value] if isinstance(value, str) else list(value))
+    return keywords
 
-    skip = {}
-    skip_keywords = {}
-    if hasattr(model, 'no_weight_decay'):
-        skip = model.no_weight_decay()
-        logger.info(f'No weight decay: {skip}')
-    if hasattr(model, 'no_weight_decay_keywords'):
-        skip_keywords = model.no_weight_decay_keywords()
-        logger.info(f'No weight decay keywords: {skip_keywords}')
+def match_rule(config, name):
+    for prefix, key, default, group in LR_RULES:
+        if name.startswith(prefix):
+            return group, float(config["TRAINING"].get(key, default))
+    return "other", 1.0
 
-    parameters = get_pretrain_param_groups(model, logger, skip, skip_keywords)
+def build_finetune_optimizer(config, model, logger):
+    """Layer-wise learning rates for segmentation finetuning (all versions)."""
+    logger.info(">>>>>>>>>> Build Optimizer for Finetuning Stage")
 
-    opt_lower = config['TRAINING']['OPTIMIZER'].lower()
-    
-    if opt_lower == 'sgd':
-        optimizer = optim.SGD(
-            parameters, 
-            momentum=config['TRAINING']['MOMENTUM'], 
-            nesterov=True,
-            lr=float(config['TRAINING']['LEARNING_RATE']), 
-            weight_decay=config['TRAINING']['WEIGHT_DECAY']
-        )
-    elif opt_lower == 'adamw':
-        optimizer = optim.AdamW(
-            parameters, 
-            eps=float(config['TRAINING'].get('EPS', 1e-8)), 
-            betas=tuple(config['TRAINING'].get('BETAS', (0.9, 0.999))),
-            lr=float(config['TRAINING']['LEARNING_RATE']), 
-            weight_decay=config['TRAINING']['WEIGHT_DECAY']
-        )
-    else:
-        raise NotImplementedError(f"Optimizer {opt_lower} not implemented")
+    base_lr = float(config["TRAINING"]["LEARNING_RATE"])
+    weight_decay = float(config["TRAINING"]["WEIGHT_DECAY"])
+    keywords = model_keywords(model)
 
-    logger.info(f'>>>>>>>>>> Created {opt_lower.upper()} Optimizer for Pre-training Stage')
-    return optimizer
-
-
-def get_pretrain_param_groups(model, logger, skip_list=(), skip_keywords=()):
-    """
-    Separate parameters into groups with and without weight decay
-    """
-    has_decay = []
-    no_decay = []
-    has_decay_name = []
-    no_decay_name = []
-    
+    buckets = {}
     for name, param in model.named_parameters():
         if not param.requires_grad:
             continue
-        # No weight decay for: 1D params (bias, norms), params in skip_list, or matching skip_keywords
-        if len(param.shape) == 1 or name.endswith(".bias") or (name in skip_list) or \
-                check_keywords_in_name(name, skip_keywords):
-            no_decay.append(param)
-            no_decay_name.append(name)
-        else:
-            has_decay.append(param)
-            has_decay_name.append(name)
-    
-    logger.info(f'Parameters with weight decay: {len(has_decay_name)} groups')
-    logger.info(f'Parameters without weight decay: {len(no_decay_name)} groups')
-    
-    # Log first few of each for verification
-    if has_decay_name:
-        logger.info(f'  Examples with decay: {has_decay_name[:3]}...')
-    if no_decay_name:
-        logger.info(f'  Examples without decay: {no_decay_name[:3]}...')
-    
-    return [
-        {'params': has_decay},
-        {'params': no_decay, 'weight_decay': 0.}
+        group, mult = match_rule(config, name)
+        if group == "other":
+            logger.warning(f"{name} matched no LR rule, using the base learning rate")
+        decay = not is_no_decay(name, param, keywords)
+        buckets.setdefault((group, decay), {"lr": base_lr * mult, "params": []})
+        buckets[(group, decay)]["params"].append(param)
+
+    param_groups = []
+    for (group, decay), bucket in buckets.items():
+        param_groups.append({
+            "params": bucket["params"],
+            "lr": bucket["lr"],
+            "weight_decay": weight_decay if decay else 0.0,
+            "name": group if decay else group + "_no_decay",
+        })
+
+    optimizer = create_optimizer(config, param_groups, logger)
+    log_param_groups(model, param_groups, logger)
+    logger.info(">>>>>>>>>> Created optimizer for Finetuning Stage")
+    return optimizer
+
+def build_pretrain_optimizer(config, model, logger):
+    """Two groups only (decay / no decay), MAE style."""
+    logger.info(">>>>>>>>>> Build Optimizer for Pre-training Stage")
+
+    base_lr = float(config["TRAINING"]["LEARNING_RATE"])
+    weight_decay = float(config["TRAINING"]["WEIGHT_DECAY"])
+    keywords = model_keywords(model)
+    logger.info(f"No weight decay keywords: {keywords}")
+
+    decay, no_decay = [], []
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+        target = no_decay if is_no_decay(name, param, keywords) else decay
+        target.append(param)
+
+    param_groups = [
+        {"params": decay, "lr": base_lr, "weight_decay": weight_decay, "name": "decay"},
+        {"params": no_decay, "lr": base_lr, "weight_decay": 0.0, "name": "no_decay"},
     ]
 
+    optimizer = create_optimizer(config, param_groups, logger)
+    log_param_groups(model, param_groups, logger)
+    logger.info(">>>>>>>>>> Created optimizer for Pre-training Stage")
+    return optimizer
 
-def check_keywords_in_name(name, keywords=()):
-    """
-    Check if any keyword appears in the parameter name
-    """
-    isin = False
-    for keyword in keywords:
-        if keyword in name:
-            isin = True
-    return isin
+def create_optimizer(config, param_groups, logger):
+    """Instantiate the optimizer; every group already carries its own lr/wd."""
+    param_groups = [g for g in param_groups if g["params"]]
+    name = config["TRAINING"]["OPTIMIZER"].lower()
+
+    if name == "adamw":
+        return torch.optim.AdamW(
+            param_groups,
+            eps=float(config["TRAINING"].get("EPS", 1e-8)),
+            betas=tuple(config["TRAINING"].get("BETAS", (0.9, 0.999))),
+        )
+    if name == "sgd":
+        return torch.optim.SGD(
+            param_groups,
+            momentum=float(config["TRAINING"].get("MOMENTUM", 0.9)),
+            nesterov=True,
+        )
+    raise NotImplementedError(f"Optimizer {name} not implemented")
+
+def log_param_groups(model, param_groups, logger):
+    """Log each group and check that no trainable parameter was left out."""
+    logger.info("[Optimizer] Parameter groups:")
+    total = 0
+    for group in param_groups:
+        n = sum(p.numel() for p in group["params"])
+        if n == 0:
+            continue
+        total += n
+        wd = f"WD={group['weight_decay']:.2e}" if group["weight_decay"] > 0 else "no WD"
+        logger.info(f"  {group['name']}: {n:,} params, LR={group['lr']:.2e}, {wd}")
+
+    expected = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    logger.info(f"Total parameters in the optimizer: {total:,} / {expected:,} trainable")
+    if total != expected:
+        raise RuntimeError(
+            f"{expected - total:,} trainable parameters were not assigned to any group"
+        )

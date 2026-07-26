@@ -130,8 +130,3 @@ If you use this work, please cite:
 }
 ```
 
----
-
-## License
-
-Released under the MIT License. See [`LICENSE`](LICENSE) for details.

@@ -1,91 +1,38 @@
 import torch
-import numpy as np
-from sklearn.metrics import f1_score,precision_score,recall_score
-
-
-def calculate_IOU(ref, pred):
-    """
-    ref, pred: tensors of shape (B, H, W)
-    Binary (0,1)
-    """
-
-    # Compute intersection and union for each sample
-    B = ref.shape[0]
-    ious = []
-
-    for i in range(B):
-        r = ref[i]
-        p = pred[i]
-
-        intersection = torch.sum(r * p)
-        union = torch.sum((r + p) >= 1)
-
-        iou = (intersection + 1e-6) / (union + 1e-6)
-        ious.append(iou.item())
-
-    return np.mean(ious)
-
-
-def calculate_F1(ref, pred):
-    """
-    ref, pred: tensors of shape (B, H, W)
-    """
-    ref = ref.cpu().numpy().ravel()
-    pred = pred.cpu().numpy().ravel()
-    return f1_score(ref, pred)
-
-def calculate_recall(ref, pred):
-    """
-    ref, pred: tensors of shape (B, H, W)
-    """
-    ref = ref.cpu().numpy().ravel()
-    pred = pred.cpu().numpy().ravel()
-    return recall_score(ref, pred)
-
-def calculate_precision(ref, pred):
-    """
-    ref, pred: tensors of shape (B, H, W)
-    """
-    ref = ref.cpu().numpy().ravel()
-    pred = pred.cpu().numpy().ravel()
-    return precision_score(ref, pred)
 
 
 class metric_calculation:
+    """Global confusion matrix over the whole evaluation set.
+
+    Metrics are computed for the change class (positive class).
+    """
+
     def __init__(self):
-        self.iou = []
-        self.f1 = []
-        self.precision = []
-        self.recall = []
-
-    def compute_metrics(self, ref, pred):
-
-        # Remove channel dimension if needed
-        if ref.dim() == 4:
-            ref = ref.squeeze(1)
-        if pred.dim() == 4:
-            pred_bin = pred.squeeze(1)
-
-        iou_val = calculate_IOU(ref, pred_bin)
-        f1_val = calculate_F1(ref, pred_bin)
-        precision_val = calculate_precision(ref, pred_bin)
-        recall_val = calculate_recall(ref, pred_bin)
-
-        self.iou.append(iou_val)
-        self.f1.append(f1_val)
-        self.precision.append(precision_val)
-        self.recall.append(recall_val)
+        self.reset()
 
     def reset(self):
-        self.iou = []
-        self.f1 = []
-        self.precision = []
-        self.recall = []
+        self.tp = 0   
+        self.fp = 0   
+        self.fn = 0 
+        
+    @torch.no_grad()
+    def compute_metrics(self, ref, pred):
+        """ref, pred: matching shapes, binary values (already thresholded)."""
+        if ref.shape != pred.shape:
+            raise ValueError(f"shape mismatch: ref {tuple(ref.shape)} vs pred {tuple(pred.shape)}")
+
+        ref = (ref > 0.5).flatten()
+        pred = (pred > 0.5).flatten()
+
+        self.tp += torch.count_nonzero(ref & pred).item()
+        self.fp += torch.count_nonzero(~ref & pred).item()
+        self.fn += torch.count_nonzero(ref & ~pred).item()
 
     def get_metrics(self):
-        return {
-            "iou": float(np.mean(self.iou)),
-            "f1": float(np.mean(self.f1)),
-            "precision": float(np.mean(self.precision)),
-            "recall": float(np.mean(self.recall))
-        }
+        eps = 1e-9
+        tp, fp, fn = self.tp, self.fp, self.fn
+
+        f1 = 2 * tp / (2 * tp + fp + fn + eps)
+        iou = tp / (tp + fp + fn + eps)
+
+        return {"f1": float(f1), "iou": float(iou)}

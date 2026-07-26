@@ -1,116 +1,90 @@
-import torch
-import torch.distributed as dist
-from torchvision.transforms.functional import normalize
-from torch.utils.data import DataLoader, Dataset, DistributedSampler
-
 import os
 import glob
+
 import numpy as np
+import torch
 from skimage.io import imread
+from torch.utils.data import DataLoader, Dataset
 
+EXTENSIONS = ("*.tif", "*.tiff", "*.png")
 
-# Dataset and Dataloader
 class Downstream_Dataset(Dataset):
+    """Paired pre/post images with a binary change label.
 
-    def __init__(self,config,logger,run,data):
+    Expected layout:  PATH/<run>/{pre,post,label}/<name>.{tif,png}
+
+    """
+
+    def __init__(self, config, logger, run):
         super().__init__()
-
-        self.data_config = config    
+        self.data_config = config
         self.logger = logger
-        self.pre_list, self.post_list,self.lbl_list = self.loadfile_list(run,data)
-        self.logger.info(f'[Downstream_Dataset INIT]---------- with {len(self.pre_list)} PRE , {len(self.post_list)} POST and {len(self.lbl_list)} Label Images')
-        
+        self.pre_list, self.post_list, self.lbl_list = self.loadfile_list(run)
+        logger.info(f"[Downstream_Dataset] {run}: {len(self.pre_list)} triplets")
+
+    def loadfile_list(self, run):
+        root = os.path.join(self.data_config["PATH"], run.lower())
+        pre = self.list_files(os.path.join(root, "pre"))
+        post = self.list_files(os.path.join(root, "post"))
+        lbl = self.list_files(os.path.join(root, "label"))
+
+        names = sorted(set(pre) & set(post) & set(lbl))
+        if not names:
+            raise RuntimeError(f"no complete pre/post/label triplets under {root}")
+
+        incomplete = (set(pre) | set(post) | set(lbl)) - set(names)
+        if incomplete:
+            raise ValueError(
+                f"{len(incomplete)} incomplete triplets in {root}, "
+                f"e.g. {sorted(incomplete)[:5]}"
+            )
+
+        return [pre[n] for n in names], [post[n] for n in names], [lbl[n] for n in names]
+
+    @staticmethod
+    def list_files(directory):
+        """Map file name without extension -> full path."""
+        files = {}
+        for extension in EXTENSIONS:
+            for path in glob.glob(os.path.join(directory, extension)):
+                files[os.path.splitext(os.path.basename(path))[0]] = path
+        return files
+
+    def transform(self, image):
+        if image.ndim == 2:
+            image = image[..., None]
+        x = torch.from_numpy(image.astype(np.float32)).permute(2, 0, 1)
+        x = torch.nan_to_num(x)
+
+        min_vals = x.amin(dim=(1, 2), keepdim=True)
+        max_vals = x.amax(dim=(1, 2), keepdim=True)
+        return (x - min_vals) / (max_vals - min_vals + 1e-6)
+
+    def label_transform(self, label):
+        """Binarise to {0, 1} and add the channel dimension."""
+        if label.ndim == 3:
+            label = label[:, :, 0] 
+        label = (label > 0).astype(np.float32)
+        return torch.from_numpy(label).unsqueeze(0)
+
     def __getitem__(self, index):
+        pre = self.transform(imread(self.pre_list[index]))
+        post = self.transform(imread(self.post_list[index]))
+        lbl = self.label_transform(imread(self.lbl_list[index]))
+        return pre, post, lbl
 
-        pre_im = imread(self.pre_list[index])
-        #pre_im = pre_im[:,:,:3]
-        post_im = imread(self.post_list[index])
-        lbl_im = imread(self.lbl_list[index])
-        #lbl_im = (lbl_im > 1).astype(np.int8)
-
-        lbl_tensor = torch.from_numpy(lbl_im.astype(np.float32)).unsqueeze(0)
-        
-        pre_tensor = self.pre_transform(pre_im)
-        post_tensor = self.post_transform(post_im)
-    
-        return pre_tensor, post_tensor,lbl_tensor
-    
-    def loadfile_list(self,run,data='DSIFN'):
-
-        pre_list = []
-        post_list = []
-        lbl_list = []
-
-        if data == 'S2WCD' or data == 'MAUI':
-
-            if run == 'train':
-                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],'train','pre','*.tif')))
-                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],'train','post','*.tif')))
-                lbl = sorted(glob.glob(os.path.join(self.data_config['PATH'],'train','label','*.tif')))
-            elif run == 'test':
-                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],'test','pre','*.tif')))
-                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],'test','post','*.tif')))
-                lbl = sorted(glob.glob(os.path.join(self.data_config['PATH'],'test','label','*.tif')))
-            elif run == 'val':
-                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],'val','pre','*.tif')))
-                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],'val','post','*.tif')))
-                lbl = sorted(glob.glob(os.path.join(self.data_config['PATH'],'val','label','*.tif')))
-            
-        elif data == 'DSIFN':
-
-            if run == 'train':
-                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],'TRAIN','pre','*.png')))
-                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],'TRAIN','post','*.png')))
-                lbl = sorted(glob.glob(os.path.join(self.data_config['PATH'],'TRAIN','label','*.png')))
-            elif run == 'test':
-                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],'TEST','pre','*.png')))
-                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],'TEST','post','*.png')))
-                lbl = sorted(glob.glob(os.path.join(self.data_config['PATH'],'TEST','label','*.png')))
-            elif run == 'val':
-                pre = sorted(glob.glob(os.path.join(self.data_config['PATH'],'VAL','pre','*.png')))
-                post = sorted(glob.glob(os.path.join(self.data_config['PATH'],'VAL','post','*.png')))
-                lbl = sorted(glob.glob(os.path.join(self.data_config['PATH'],'VAL','label','*.png')))
-
-        if len(pre) != len(post) or len(pre)  != len(lbl):
-            raise ValueError(f"Mismatch in file count in PRE, POST or Label")
-            
-        else:
-            for pre_files,post_files,lbl_files in zip(pre, post,lbl):
-                
-                pre_list.append(pre_files)
-                post_list.append(post_files)   
-                lbl_list.append(lbl_files)   
-
-        return pre_list,post_list,lbl_list
-
-    def pre_transform(self,x):
-        
-        x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
-        min_vals = x.amin(dim=(1, 2), keepdim=True)
-        max_vals = x.amax(dim=(1, 2), keepdim=True)
-        x = (x - min_vals) / (max_vals - min_vals + 1e-6)
-      
-        return x
-
-    def post_transform(self,x):
-
-        x = torch.from_numpy(x.astype(np.float32)).permute(2, 0, 1)
-        min_vals = x.amin(dim=(1, 2), keepdim=True)
-        max_vals = x.amax(dim=(1, 2), keepdim=True)
-        x = (x - min_vals) / (max_vals - min_vals + 1e-6)
-
-        return x
-    
-    def __len__(self): 
+    def __len__(self):
         return len(self.pre_list)
 
-# dataloader function
-def build_loader(config,logger,run,data,distributed = False):
 
-    dataset = Downstream_Dataset(config,logger,run,data)
-    if distributed:
-        sampler = DistributedSampler(dataset, num_replicas=dist.get_world_size(), rank=dist.get_rank(), shuffle=True)
-        dataloader =  DataLoader(dataset,sampler=sampler,batch_size=config['BATCH_SIZE'],num_workers=config['NUM_WORKERS'],pin_memory=config['PIN_MEMORY'], drop_last=True)   
-    else: 
-        dataloader =  DataLoader(dataset,shuffle=config['SHUFFLE'],batch_size=config['BATCH_SIZE'],num_workers=config['NUM_WORKERS'],pin_memory=config['PIN_MEMORY'], drop_last=True)  
-    return dataloader
+def build_loader(config, logger, run):
+    dataset = Downstream_Dataset(config, logger, run)
+    is_train = run == "train"
+
+    return DataLoader(
+        dataset,
+        batch_size=config["BATCH_SIZE"],
+        shuffle=config["SHUFFLE"] and is_train,
+        num_workers=config["NUM_WORKERS"],
+        pin_memory=config["PIN_MEMORY"],
+        drop_last=is_train)

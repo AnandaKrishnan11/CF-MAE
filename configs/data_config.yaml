@@ -19,55 +19,17 @@ PRETRAIN:
   SAR_SAMPLES: 163078
   TOTAL_SIZE: 735 GB
 
-  # INPUT MODALITIES
-  MODALITIES:
-    MIN_MAX : True #Even though we calculated the mean and std of the whole dataset we used the Min max scalar (Per channel) to scale the data to bring all the multi data modalities to a common distribution
-    PRE:
-      # Normalization stats
-      OPTICAL:
-        MEAN: [89.53308483, 91.90585991, 72.68601714]
-        STD: [26.02605953, 22.89198987, 21.41148246]
-      SAR:
-        MEAN: [-10.06004433, -17.2189107, 0.58428808]
-        STD:  [3.2242846, 3.6404165, 0.80442163]
-
-    POST:
-      OPTICAL:
-        MEAN: [88.64208643, 90.80364261, 72.86729786]
-        STD: [23.95943428, 21.25911327, 19.86496781]
-      SAR:
-        MEAN: [-12.03841647, -19.97186764, 0.59826662]
-        STD:  [4.01822834, 4.7711841, 0.65049576]
 
 # ====================================================================
 # FINETUNE / DOWNSTREAM DATASETS
 # ====================================================================
 
 FINETUNE:
-  S2WCD:
-    NAME: S2WCD # Sentinel-2 Wildfire Change Detection (S2-WCD)
-    PATH: /media/krishnan/GFM/finetune_data/S2_WCD
-    IMAGE_SIZE: 224
-    NUM_CHANNELS: 3
-    BATCH_SIZE: 8
-    NUM_WORKERS: 8
-    PIN_MEMORY: True
-    SHUFFLE: True
-  DSIFN:
-    NAME: DSIFN # Building Change
-    PATH: /media/krishnan/GFM/finetune_data/DSIFN
-    IMAGE_SIZE: 224
-    NUM_CHANNELS: 3
-    BATCH_SIZE: 16
-    NUM_WORKERS: 8
-    PIN_MEMORY: True
-    SHUFFLE: False
-  MAUI:
-    NAME: MAUI # Building Damage Assessment
-    PATH: /media/krishnan/GFM/finetune_data/MAUI
-    IMAGE_SIZE: 224
-    NUM_CHANNELS: 3
-    BATCH_SIZE: 8
-    NUM_WORKERS: 8
-    PIN_MEMORY: True
-    SHUFFLE: False
+  NAME: S2WCD # Sentinel-2 Wildfire Change Detection (S2-WCD)
+  PATH: /media/krishnan/GFM/finetune_data/S2_WCD #Change the file path
+  IMAGE_SIZE: 224
+  NUM_CHANNELS: 3
+  BATCH_SIZE: 8
+  NUM_WORKERS: 8
+  PIN_MEMORY: True
+  SHUFFLE: True

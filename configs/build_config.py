@@ -1,22 +1,17 @@
+import os
 import yaml
 from yaml.loader import FullLoader
 
 
-
-def data_config(is_pretrain=True,data=None):
+def data_config(is_pretrain=True):
     with open("configs/data_config.yaml", "r") as d:
         data_config = yaml.load(d, Loader=FullLoader)
 
         if is_pretrain:
             return data_config['PRETRAIN']
         else:
-            if data == 'S2WCD':
-                return data_config['FINETUNE']['S2WCD']
-            elif data == 'DSIFN':
-                return data_config['FINETUNE']['DSIFN']
-            elif data == 'MAUI':
-                return data_config['FINETUNE']['MAUI']
-        
+            return data_config['FINETUNE']
+
 
 def model_config(is_pretrain=True):
     with open("configs/model_config.yaml", "r") as m:
@@ -26,23 +21,21 @@ def model_config(is_pretrain=True):
             return model_config['PRETRAIN']
         else:
             return model_config['FINETUNE']
-        
 
-def load_config(data=None,is_pretrain=True,type='data'):
+
+def load_config(is_pretrain=True, type='data'):
     if type == 'data':
-        return data_config(is_pretrain,data)
+        return data_config(is_pretrain)
     elif type == 'model':
         return model_config(is_pretrain)
     else:
-         raise NotImplementedError
-    
+        raise NotImplementedError
 
-def write_config(config,type='data'):
-    if type == 'data':
-        with open("configs/data_config.yaml", "w") as d:
-            yaml.safe_dump(config, d, sort_keys=False)
-    elif type == 'model':
-        with open("configs/model_config.yaml", "w") as m:
-            yaml.safe_dump(config, m, sort_keys=False)
-    else:
-         raise NotImplementedError
+
+def write_config(config, output_dir, name='config.yaml'):
+    """Save the resolved config into the run folder, not back into configs/."""
+    os.makedirs(output_dir, exist_ok=True)
+    path = os.path.join(output_dir, name)
+    with open(path, "w") as f:
+        yaml.safe_dump(config, f, sort_keys=False)
+    return path

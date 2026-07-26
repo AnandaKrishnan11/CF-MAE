@@ -1,187 +1,132 @@
-import torch
-import matplotlib.pyplot as plt
 import os
+import torch
+
+# Pretrained change encoder: [Linear(0), GELU(1), Linear(2)]
+# Fine-tuning change encoder: [Linear(0), GELU(1), Dropout(2), Linear(3), Dropout(4)]
+CHANGE_ENCODER_INDEX_MAP = {"0": "0", "2": "3"}
+
+SKIP_PREFIXES = ("mask_token", "decoder.")
+
+
+def read_state_dict(path, weights_only=True):
+    if not os.path.isfile(path):
+        raise FileNotFoundError("checkpoint not found: {}".format(path))
+
+    obj = torch.load(path, map_location="cpu", weights_only=weights_only)
+    if isinstance(obj, dict):
+        for key in ("model", "state_dict", "model_state_dict"):
+            if key in obj and isinstance(obj[key], dict):
+                obj = obj[key]
+                break
+
+    state = dict(obj)
+    print("Loaded {} tensors from {}".format(len(state), path))
+    return state
+
+
+def split_by_prefix(state, prefixes):
+    groups = {p: {} for p in prefixes}
+    leftover = {}
+
+    for key, value in state.items():
+        if key.startswith(SKIP_PREFIXES):
+            continue
+        match = None
+        for prefix in prefixes:
+            if key.startswith(prefix) and (match is None or len(prefix) > len(match)):
+                match = prefix
+        if match is None:
+            leftover[key] = value
+        else:
+            groups[match][key[len(match):]] = value
+
+    if leftover:
+        print("[warn] ignoring {} unrecognised keys, e.g. {}".format(
+            len(leftover), sorted(leftover)[:5]))
+    return groups
+
+
+def remap_layer_indices(state, index_map):
+    remapped = {}
+    for key, value in state.items():
+        index, _, rest = key.partition(".")
+        if index in index_map:
+            remapped[index_map[index] + "." + rest] = value
+    return remapped
+
+
+def load_into(module, state, name, strict=False):
+    if not state:
+        raise KeyError("no pretrained weights found for '{}'".format(name))
+
+    missing, unexpected = module.load_state_dict(state, strict=strict)
+    loaded = len(state) - len(unexpected)
+    if loaded == 0:
+        raise KeyError("no checkpoint key matched '{}' (check the prefixes)".format(name))
+
+    print("{}: loaded {}/{} tensors (missing={}, unexpected={})".format(
+        name, loaded, len(module.state_dict()), len(missing), len(unexpected)))
+    if unexpected:
+        print("[warn] {} unexpected keys: {}".format(name, unexpected))
+
+
+def load_v1(model, state):
+    prefixes = ("encoder.", "change_encoder.", "decoder_embed.",
+                "pre_projection.", "post_projection.")
+    groups = split_by_prefix(state, prefixes)
+    target = model.encoderv1
+
+    load_into(target.encoder, groups["encoder."], "encoder", strict=True)
+    load_into(target.pre_projection, groups["pre_projection."], "pre_projection", strict=True)
+    load_into(target.post_projection, groups["post_projection."], "post_projection", strict=True)
+    load_into(target.change_encoder, groups["change_encoder."], "change_encoder", strict=True)
+    load_into(target.decoder_embed, groups["decoder_embed."], "decoder_embed", strict=True)
+
+
+def load_decoder_embed(module, state):
+    """Copy the pretrained Linear into the first/last Linear of the Sequential.
+
+    v2: decoder_embed is D -> D ... D -> D, so both layer 0 and layer 3 match.
+    v3: decoder_embed fuses 4 scales (4*D -> 2*D -> D), nothing matches and the
+    module keeps its default init.
+    """
+    target = module.state_dict()
+    expanded = {}
+    for key, value in state.items():
+        for index in ("0", "3"):
+            name = index + "." + key
+            if name in target and target[name].shape == value.shape:
+                expanded[name] = value
+
+    if not expanded:
+        print("decoder_embed: shapes differ from the checkpoint, keeping default init")
+        return
+    load_into(module, expanded, "decoder_embed")
+
+
+def load_multiscale(model, state):
+    """Shared loading path for v2 and v3."""
+    groups = split_by_prefix(state, ("encoder.", "change_encoder.", "decoder_embed."))
+
+    load_into(model.encoder.encoder, groups["encoder."], "encoder")
+
+    change_state = remap_layer_indices(groups["change_encoder."], CHANGE_ENCODER_INDEX_MAP)
+    for i in range(1, 5):
+        branch = getattr(model.encoder, "change_encoder{}".format(i))
+        load_into(branch, change_state, "change_encoder{}".format(i))
+
+    load_decoder_embed(model.encoder.decoder_embed, groups["decoder_embed."])
+
 
 def load_pretrained_cfmae(model, config):
-    """
-    Load CF-MAE pretrained weights and initialize multi-scale change encoders
-    for MS-CFTv1 AND v2
-    """
-    checkpoint_path = config["TRAINING"]["PRETRAINED_WEIGHT"]
-    print(f"Loading CF-MAE pretrained weights from: {checkpoint_path} for {config['VERSION']}")
+    version = config["VERSION"]
+    state = read_state_dict(config["TRAINING"]["PRETRAINED_WEIGHT"])
+    print("Initialising {} from CF-MAE checkpoint".format(version))
 
-    if config["VERSION"] == "v1":
-
-        checkpoint = torch.load(checkpoint_path, map_location="cpu")
-        state_dict = checkpoint["model"]
-
-        encoder_state_dict = {}
-        change_encoder_base_state = {}
-        decoder_embed_state_dict = {}
-        pre_proj = {}
-        post_proj = {}
-
-        for k,v in state_dict.items():
-            if k.startswith("mask_token") or k.startswith("decoder."):
-                    continue
-            elif k.startswith("encoder."):
-                new_key = k.replace("encoder.","")
-                encoder_state_dict[new_key] = v
-            elif k.startswith("change_encoder."):
-                new_key = k.replace("change_encoder.","")
-                change_encoder_base_state[new_key] = v
-            elif k.startswith("decoder_embed."):
-                new_key = k.replace("decoder_embed.", "")
-                decoder_embed_state_dict[new_key] = v
-            elif k.startswith("pre_projection."):
-                new_key = k.replace("pre_projection.", "")
-                pre_proj[new_key] = v
-            elif k.startswith("post_projection."):
-                new_key = k.replace("post_projection.", "")
-                post_proj[new_key] = v
-            else:
-                encoder_state_dict[k] = v
-
-        model.encoderv1.encoder.load_state_dict(encoder_state_dict)
-        model.encoderv1.pre_projection.load_state_dict(pre_proj)
-        model.encoderv1.post_projection.load_state_dict(post_proj)
-        model.encoderv1.change_encoder.load_state_dict(change_encoder_base_state)
-        model.encoderv1.decoder_embed.load_state_dict(decoder_embed_state_dict)
-
-        return model,True
+    if version == "v1":
+        load_v1(model, state)
+    elif version in ("v2", "v3"):
+        load_multiscale(model, state)
     else:
-        try:
-            checkpoint = torch.load(checkpoint_path, map_location="cpu")
-            state_dict = checkpoint["model"]
-            
-            # Containers
-            encoder_state_dict = {}
-            change_encoder_base_state = {}
-            decoder_embed_state_dict = {}
-            
-            # Parse checkpoint
-            for k, v in state_dict.items():
-                if k.startswith("mask_token") or k.startswith("decoder."):
-                    continue
-                elif k.startswith("change_encoder."):
-                    # Extract base change encoder weights
-                    new_key = k.replace("change_encoder.", "")
-                    change_encoder_base_state[new_key] = v
-                elif k.startswith("encoder."):
-                    new_key = k.replace("encoder.", "")
-                    encoder_state_dict[new_key] = v
-                elif k.startswith("decoder_embed."):
-                    new_key = k.replace("decoder_embed.", "")
-                    decoder_embed_state_dict[new_key] = v
-                else:
-                    encoder_state_dict[k] = v
-            
-            # Load encoder weights
-            missing, unexpected = model.encoder.encoder.load_state_dict(
-                encoder_state_dict, strict=False
-            )
-            print("Missing keys:", missing)
-            print("Unexpected keys:", unexpected)
-            print("✓ Loaded encoder weights")
-            
-            # Initialize all change encoders from pretrained weights
-            if change_encoder_base_state:
-                # Map pretrained 3-layer to new 5-layer architecture
-                # Pretrained: [Linear(0), GELU(1), Linear(2)]
-                # New:        [Linear(0), GELU(1), Dropout(2), Linear(3), Dropout(4)]
-                
-                def init_change_encoder(change_encoder_module):
-                    """Initialize a 5-layer change encoder from 3-layer pretrained weights"""
-                    new_state = {}
-                    
-                    for key, value in change_encoder_base_state.items():
-                        if key.startswith('0.'):  # First Linear layer
-                            new_state[key] = value
-                        elif key.startswith('2.'):  # Second Linear layer (was index 2, now index 3)
-                            new_key = key.replace('2.', '3.')
-                            new_state[new_key] = value
-                    
-                    # Load the mapped weights (strict=False to allow Dropout layers to be randomly initialized)
-                    change_encoder_module.load_state_dict(new_state, strict=False)
-                    print(f"  ✓ Initialized change encoder with pretrained Linear layers")
-                
-                # Initialize all 4 change encoders
-                init_change_encoder(model.encoder.change_encoder1)
-                init_change_encoder(model.encoder.change_encoder2)
-                init_change_encoder(model.encoder.change_encoder3)
-                init_change_encoder(model.encoder.change_encoder4)
-                
-                print("✓ Initialized all change_encoder modules (1-4) from CF-MAE")
-
-            if config["VERSION"] == "v2":
-            
-                # Load decoder_embed
-                if decoder_embed_state_dict:
-                    # Pretrained decoder_embed is a single Linear layer
-                    # New decoder_embed is a 4-layer Sequential: [Linear, GELU, Dropout, Linear]
-                    
-                    # Map the single Linear layer to the first Linear in the Sequential
-                    new_decoder_state = {}
-                    for key, value in decoder_embed_state_dict.items():
-                        # Map to the first layer (index 0) of the Sequential
-                        new_key = f"0.{key}"
-                        new_decoder_state[new_key] = value
-                    
-                    # The last Linear layer (index 3) will use the same weights as initialization
-                    for key, value in decoder_embed_state_dict.items():
-                        new_key = f"3.{key}"
-                        new_decoder_state[new_key] = value
-                    
-                    missing_dec, unexpected_dec = model.encoder.decoder_embed.load_state_dict(
-                        new_decoder_state, strict=False
-                    )
-                    print("✓ Loaded decoder_embed weights (first and last Linear layers)")
-            
-            print("\n✓ Successfully loaded and initialized all weights")
-            return model, True
-            
-        except Exception as e:
-            print(f"[Error] Failed to load pretrained weights: {e}")
-            import traceback
-            traceback.print_exc()
-            print("⚠ Continuing with model initialization")
-            return model, False
-
-class image:
-    def __init__(self):
-        self.id = 0
-
-    def visualise_scene(self,pre_img,post_img,label_img,pred_img):
-
-        batch_count = pre_img.shape[0]
-
-        for idx in range(batch_count):
-
-            pre = pre_img[idx,:,:,:].cpu().numpy().transpose(1,2,0)
-            post = post_img[idx,:,:,:].cpu().numpy().transpose(1,2,0)
-            label = label_img[idx,:,:,:].cpu().numpy().transpose(1,2,0)
-            pred = pred_img[idx,:,:,:].cpu().numpy().transpose(1,2,0)
-
-            fig,axs = plt.subplots(1,4,figsize = (15,5))
-
-            axs[0].imshow(pre)
-            axs[0].set_title("Pre Image")
-            axs[0].axis("off")
-
-            axs[1].imshow(post)
-            axs[1].set_title("Post Image")
-            axs[1].axis("off")
-
-            axs[2].imshow(label,cmap = "gray")
-            axs[2].set_title("GT")
-            axs[2].axis("off")
-            axs[3].imshow(pred, cmap ="gray")
-            axs[3].set_title("MS-CFT_v3")
-            axs[3].axis("off")
-
-            plt.tight_layout()
-            out_dir = '/media/krishnan/GFM/SEGMENTATION IMAGES/MY_MODELS/MAUI/MS-CFT_v3'
-            os.makedirs(out_dir,exist_ok=True)
-            plt.savefig(f'{out_dir}/img{self.id}.png',dpi=400)
-            self.id+=1
-            plt.close()
+        raise ValueError("unknown model version: {}".format(version))
+    return model
