@@ -43,11 +43,13 @@ class Downstream_Dataset(Dataset):
 
     @staticmethod
     def list_files(directory):
-        """Map file name without extension -> full path."""
+        """Map the shared index -> full path (pre_0.tif / post_0.tif / label_0.tif)."""
         files = {}
         for extension in EXTENSIONS:
             for path in glob.glob(os.path.join(directory, extension)):
-                files[os.path.splitext(os.path.basename(path))[0]] = path
+                stem = os.path.splitext(os.path.basename(path))[0]
+                key = stem.split("_", 1)[1] if "_" in stem else stem
+                files[key] = path
         return files
 
     def transform(self, image):

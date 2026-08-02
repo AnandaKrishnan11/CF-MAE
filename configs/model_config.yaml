@@ -46,7 +46,7 @@ PRETRAIN:
 #############################################################################
 
 FINETUNE:
-  NAME: MS_CFT4Segm
+  NAME: CFT4Segm
   TYPE: Segmentation
   VERSION: v2
   ENCODER:
@@ -61,8 +61,6 @@ FINETUNE:
     EMBED_DIM: 768
     OUT_IMG_SIZE: 224
     OUT_CHANNEL: 1
-  SATMAE:
-    WEIGHT: /media/krishnan/GFM/Checkpoint_hub/SATMAE/pretrain-vit-base-e199.pth
   TRAINING:
     START_EPOCH: 0
     TOTAL_EPOCHS: 50
@@ -88,10 +86,9 @@ FINETUNE:
     SCHEDULER: cosine
     STEP_SIZE: 30
     GAMMA: 0.1
-    PATIENCE: 50
+    PATIENCE: 50 #No patience used during training
     LOGGER_PATH: /media/krishnan/GFM/Checkpoint_hub
     BEST_CHECKPOINT_PATH: /media/krishnan/GFM/Checkpoint_hub/best_chk_pt.pth
     LAST_CHECKPOINT_PATH: /media/krishnan/GFM/Checkpoint_hub/last_chk_pt.pth
-    USE_PRETRAINED_WEIGHT: True
     PRETRAINED_WEIGHT: /media/krishnan/GFM/Checkpoint_hub/main_checkpoint/best_chk_pt.pth
 

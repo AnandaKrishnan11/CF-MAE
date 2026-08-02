@@ -25,11 +25,11 @@ PRETRAIN:
 # ====================================================================
 
 FINETUNE:
-  NAME: S2WCD # Sentinel-2 Wildfire Change Detection (S2-WCD)
-  PATH: /media/krishnan/GFM/finetune_data/S2_WCD #Change the file path
+  NAME: DSIFN # Sentinel-2 Wildfire Change Detection (S2-WCD)
+  PATH: /media/krishnan/GFM/finetune_data/DSIFN #Change the file path
   IMAGE_SIZE: 224
   NUM_CHANNELS: 3
-  BATCH_SIZE: 8
+  BATCH_SIZE: 16
   NUM_WORKERS: 8
   PIN_MEMORY: True
   SHUFFLE: True
