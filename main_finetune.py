@@ -19,15 +19,14 @@ from tqdm import tqdm
 
 def parse_args():
       parser = argparse.ArgumentParser('CF-MAE finetuning')
-      parser.add_argument('--data-path', default=None, help='override the dataset root')
-      parser.add_argument('--output', default=None, help='override the log/checkpoint directory')
-      parser.add_argument('--version', default=None, choices=['v1','v2','v3'], help='model version')
-      parser.add_argument('--pretrained', default=None, help='path to the CF-MAE checkpoint')
-      parser.add_argument('--no-pretrained', action='store_true', help='train from scratch')
-      parser.add_argument('--batch-size', type=int, default=None)
-      parser.add_argument('--lr', type=float, default=None)
-      parser.add_argument('--epochs', type=int, default=None)
-      parser.add_argument('--accumulation-steps', type=int, default=None)
+      parser.add_argument('--data-path', default=None, required= True, help='override the dataset root')
+      parser.add_argument('--output', default=None, required= True, help='override the log/checkpoint directory')
+      parser.add_argument('--version', default="v2", choices=['v1','v2','v3'], help='model version')
+      parser.add_argument('--pretrained', required= True, default=None, help='path to the CF-MAE checkpoint')
+      parser.add_argument('--batch-size', type=int, default=16)
+      parser.add_argument('--lr', type=float, default=5e-5)
+      parser.add_argument('--epochs', type=int, default=50)
+      parser.add_argument('--accumulation-steps', type=int, default=0)
       parser.add_argument('--no-resume', action='store_true', help='ignore the last checkpoint')
       return parser.parse_args()
 
@@ -47,9 +46,6 @@ def apply_args(model_config, data_config, args):
             model_config['TRAINING']['ACCUMULATION_STEPS'] = args.accumulation_steps
       if args.pretrained is not None:
             model_config['TRAINING']['PRETRAINED_WEIGHT'] = args.pretrained
-            model_config['TRAINING']['USE_PRETRAINED_WEIGHT'] = True
-      if args.no_pretrained:
-            model_config['TRAINING']['USE_PRETRAINED_WEIGHT'] = False
       if args.no_resume:
             model_config['TRAINING']['AUTO_RESUME'] = False
       if args.output is not None:
@@ -85,10 +81,7 @@ def main():
       print(f"[INFO]---Creating model:{model_config['TYPE']} style--{model_config['NAME']}")
       model = build_model(model_config,is_pretrain=False)
 
-      if model_config['TRAINING']['USE_PRETRAINED_WEIGHT']:
-            model = load_pretrained_cfmae(model,model_config)
-      else:
-            logger.info("Training from random initialization")
+      model = load_pretrained_cfmae(model,model_config)
       model.to(device)
       logger.info(str(model))
 

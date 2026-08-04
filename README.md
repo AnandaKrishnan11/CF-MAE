@@ -18,17 +18,17 @@ For the downstream task, we introduce the Change-Fused Transformer (CFT) in thre
 - **CFT v3** — multi-scale, fusing change features across encoder stages directly to decoder after concatenation.
 ---
 
-## Architecture
+## Pre-training Architecture
 
 <p align="center">
   <img src="assets/CF_MAE.png" width="750" alt="CF-MAE architecture overview">
 </p>
-
+See assets for the architecture diagrams of each CFT variant.
 ---
 
 ## Dataset
 
-Pre-training uses **PANDORA** (Paired Natural Disaster Observations for Reconstruction and Analysis), a multi-source, multi-modal dataset compiled from openly available benchmarks. It contains 376,634 paired pre-/post-disaster scenes, chipped to 3 × 224 × 224.
+Pre-training uses **PANDORA** (Paired Natural Disaster Observations for Reconstruction and Analysis), a multi-source, multi-modal dataset compiled from openly available benchmarks. It contains 376,634 paired pre-/post-disaster scenes, chipped to 3 × 224 × 224. 
 
 | Dataset            | Images  | Modality |
 |--------------------|---------|----------|
@@ -44,13 +44,72 @@ Downstream fine-tuning and evaluation use:
 - **DSIFN-CD** — very high resolution building change detection
 - **Maui** — fire damage assessment (ESRI World Wayback pre-image, Vantor open data post-image)
 
+Access Data via:
 ---
+
+## Dataset Structure
+
+### Pre-training
+
+```
+<PATH>/
+├── ai4eo/
+│   ├── pre/
+│   │   ├── 000000.tif
+│   │   ├── 000001.tif
+│   │   └── ...
+│   └── post/
+│       ├── 000000.tif
+│       ├── 000001.tif
+│       └── ...
+├── levir/
+│   ├── pre/
+│   └── post/
+├── wuhan/
+│   ├── pre/
+│   └── post/
+├── xbd/
+│   ├── pre/
+│   └── post/
+└── senforflood/
+    ├── pre/
+    └── post/
+```
+
+### Fine-tuning
+
+`PATH` points to a directory containing `train/`, `val/` and `test/` splits, each with `pre/`, `post/` and `label/` directories.
+
+```
+<PATH>/
+├── train/
+│   ├── pre/
+│   │   ├── pre_0.tif
+│   │   ├── pre_1.tif
+│   │   └── ...
+│   ├── post/
+│   │   ├── post_0.tif
+│   │   ├── post_1.tif
+│   │   └── ...
+│   └── label/
+│       ├── label_0.tif
+│       ├── label_1.tif
+│       └── ...
+├── val/
+│   ├── pre/
+│   ├── post/
+│   └── label/
+└── test/
+    ├── pre/
+    ├── post/
+    └── label/
+```
 
 ## Results
 
-Quantitative evaluation (F1 / IoU) against CNN, transformer, and foundation-model baselines:
+Quantitative evaluation (F1 & IoU of change class) against CNN, transformer, and foundation-model baselines:
 
-| Model              | S2-WCD F1 | S2-WCD IoU | DSIFN-CD F1 | DSIFN-CD IoU | Maui F1 | Maui IoU |
+| Model | S2-WCD F1 | S2-WCD IoU | DSIFN-CD F1 | DSIFN-CD IoU | Maui F1 | Maui IoU |
 |--------------------|:---------:|:----------:|:-----------:|:------------:|:-------:|:--------:|
 | FC-EF              | 0.83 | 0.71 | 0.53 | 0.36 | 0.75 | 0.60 |
 | FC-Siam-diff       | 0.59 | 0.42 | 0.34 | 0.21 | 0.74 | 0.59 |
@@ -59,13 +118,13 @@ Quantitative evaluation (F1 / IoU) against CNN, transformer, and foundation-mode
 | BIT                | 0.90 | 0.82 | 0.73 | 0.57 | 0.75 | 0.59 |
 | ChangeFormer       | 0.89 | 0.80 | 0.62 | 0.45 | 0.60 | 0.43 |
 | SatMAE             | 0.73 | 0.36 | 0.48 | 0.27 | 0.54 | 0.34 |
-| Clay               | 0.78 | 0.71 | 0.60 | 0.38 | 0.76 | 0.68 |
+| CLAY               | 0.78 | 0.71 | 0.60 | 0.38 | 0.76 | 0.68 |
 | Prithvi            | 0.86 | 0.73 | 0.66 | 0.40 | 0.64 | 0.55 |
-| **S-CFT (PANDORA)**   | 0.91 | 0.83 | 0.90 | 0.75 | 0.81 | 0.74 |
-| **MS-CFT (ImageNet)** | 0.93 | **0.87** | 0.90 | 0.74 | 0.81 | 0.73 |
-| **MS-CFT (SatMAE)**   | 0.78 | 0.71 | 0.81 | 0.61 | 0.69 | 0.60 |
-| **MS-CFT (PANDORA)**  | **0.94** | 0.84 | **0.93** | **0.81** | **0.82** | **0.74** |
-
+| **CFTv2 (ImageNet)** | 0.93 | **0.87** | 0.90 | 0.74 | 0.81 | 0.73 |
+| **CFTv2 (SatMAE)**   | 0.78 | 0.71 | 0.81 | 0.61 | 0.69 | 0.60 |
+| **CFTv1 (PANDORA)**  | 0.91 | 0.83 | 0.90 | 0.75 | 0.81 | **0.74** |
+| **CFTv2 (PANDORA)**  | **0.94** | 0.84 | 0.93 | 0.81 | **0.82** | **0.74** |
+| **CFTv3 (PANDORA)**  | **0.94** | 0.84 | **0.94** | **0.82** | **0.82** | **0.74** |
 ---
 
 ## Installation
@@ -83,25 +142,33 @@ pip install -r requirements.txt
 ```
 
 ---
+## Weights
+### Pre-trained
+PANDORA: https://github.com/AnandaKrishnan11/CF-MAE/releases/tag/v1.0-pandora
+
+### Finetuned (CFTv2)
+S2-WCD: 
+DSIFN:
+Maui: 
 
 ## Usage
 
 ### Pre-training
 
 ```bash
-python pretrain.py --config configs/cf_mae_pretrain.yaml
+python main_pretrain.py --data-path --output --lr --epochs --no-resume
 ```
 
 ### Fine-tuning (downstream change detection)
 
 ```bash
-python train.py --config configs/ms_cft_s2wcd.yaml
+python main_finetune.py --data-path --output --version --pretrained --lr --epochs --no-resume
 ```
 
 ### Evaluation
 
 ```bash
-python evaluate.py --config configs/ms_cft_s2wcd.yaml --checkpoint checkpoints/ms_cft_pandora.pth
+python inference.py --data-path --output --checkpoint --version
 ```
 
 > Update dataset paths and hyperparameters in the corresponding config files under `configs/`.

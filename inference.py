@@ -11,12 +11,11 @@ import argparse
 
 def parse_args():
       parser = argparse.ArgumentParser('CF-MAE inference')
-      parser.add_argument('--data-path', default=None, help='override the dataset root')
-      parser.add_argument('--output', default=None, help='override the log directory')
-      parser.add_argument('--checkpoint', default=None, help='path to the checkpoint to evaluate')
-      parser.add_argument('--version', default=None, choices=['v1','v2','v3'], help='model version')
-      parser.add_argument('--batch-size', type=int, default=None)
-      parser.add_argument('--run', default='test', choices=['train','val','test'], help='split to evaluate')
+      parser.add_argument('--data-path', default=None, required= True, help='override the dataset root')
+      parser.add_argument('--output', default=None, required= True, help='override the log directory')
+      parser.add_argument('--checkpoint', default=None, required= True, help='path to the checkpoint to evaluate')
+      parser.add_argument('--version', default="v2", choices=['v1','v2','v3'], help='model version')
+      parser.add_argument('--batch-size', type=int, default=16)
       return parser.parse_args()
 
 
@@ -67,7 +66,7 @@ def main():
       print(f"[INFO]----Model initialized with {n_parameters} number of paramter")
       logger.info(f"number of params: {n_parameters}")
 
-      test_loader = build_loader(data_config,logger,run=args.run)
+      test_loader = build_loader(data_config,logger,run="test")
       metric = metric_calculation()
 
       model.eval()
@@ -84,11 +83,9 @@ def main():
 
       vals = metric.get_metrics()
 
-      logger.info(f"[SPLIT]----------------{args.run} ({len(test_loader.dataset)} samples)")
+      logger.info(f"[SPLIT]----------------test ({len(test_loader.dataset)} samples)")
       logger.info(f"[IOU METRICS]----------------{vals['iou']}")
       logger.info(f"[F1 METRICS]----------------{vals['f1']}")
-
-      print(f"[RESULT]----{args.run}: IoU {vals['iou']:.4f} | F1 {vals['f1']:.4f}")
 
 
 if __name__ =='__main__':

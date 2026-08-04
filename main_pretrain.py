@@ -17,12 +17,12 @@ from tqdm import tqdm
 
 def parse_args():
       parser = argparse.ArgumentParser('CF-MAE pretraining')
-      parser.add_argument('--data-path', default=None, help='override the dataset root')
-      parser.add_argument('--output', default=None, help='override the log/checkpoint directory')
-      parser.add_argument('--batch-size', type=int, default=None)
-      parser.add_argument('--lr', type=float, default=None)
-      parser.add_argument('--epochs', type=int, default=None)
-      parser.add_argument('--accumulation-steps', type=int, default=None)
+      parser.add_argument('--data-path', default=None, required= True, help='override the dataset root')
+      parser.add_argument('--output', default=None, required= True, help='override the log/checkpoint directory')
+      parser.add_argument('--batch-size', type=int, default=128)
+      parser.add_argument('--lr', type=float, default=0.0001)
+      parser.add_argument('--epochs', type=int, default=100)
+      parser.add_argument('--accumulation-steps', type=int, default=0)
       parser.add_argument('--no-resume', action='store_true', help='ignore the last checkpoint')
       return parser.parse_args()
 
