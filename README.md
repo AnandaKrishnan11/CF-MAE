@@ -24,6 +24,7 @@ For the downstream task, we introduce the Change-Fused Transformer (CFT) in thre
   <img src="assets/CF_MAE.png" width="750" alt="CF-MAE architecture overview">
 </p>
 See assets for the architecture diagrams of each CFT variant.
+
 ---
 
 ## Dataset
@@ -44,7 +45,8 @@ Downstream fine-tuning and evaluation use:
 - **DSIFN-CD** — very high resolution building change detection
 - **Maui** — fire damage assessment (ESRI World Wayback pre-image, Vantor open data post-image)
 
-Access Data via:
+Access Data via: Will be released soon
+
 ---
 
 ## Dataset Structure
@@ -147,9 +149,7 @@ pip install -r requirements.txt
 PANDORA: https://github.com/AnandaKrishnan11/CF-MAE/releases/tag/v1.0-pandora
 
 ### Finetuned (CFTv2)
-S2-WCD: 
-DSIFN:
-Maui: 
+Will be released soon
 
 ## Usage
 
