@@ -54,7 +54,7 @@ def main():
       checkpoint_path = model_config['TRAINING']['BEST_CHECKPOINT_PATH']
       logger.info(f'Loading checkpoint {checkpoint_path}')
       checkpoint = torch.load(checkpoint_path, map_location="cpu")
-      Unexpected, Missing = model.load_state_dict(checkpoint_path["model"], strict=True)
+      Unexpected, Missing = model.load_state_dict(checkpoint["model"], strict=True)
       print(f"[UNEXPECTED]---{Unexpected}")
       print(f"[MISSING]----{Missing}")
       logger.info(f"Checkpoint from epoch {checkpoint.get('epoch', 'unknown')}")
