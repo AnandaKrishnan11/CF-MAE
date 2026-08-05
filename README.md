@@ -156,13 +156,13 @@ Will be released soon
 ### Pre-training
 
 ```bash
-python main_pretrain.py --data-path --output --lr --epochs --no-resume
+python main_pretrain.py --data-path --output --lr --epochs 
 ```
 
 ### Fine-tuning (downstream change detection)
 
 ```bash
-python main_finetune.py --data-path --output --version --pretrained --lr --epochs --no-resume
+python main_finetune.py --data-path --output --version --pretrained --lr --epochs
 ```
 
 ### Evaluation
