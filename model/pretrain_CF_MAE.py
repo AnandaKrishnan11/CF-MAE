@@ -79,42 +79,34 @@ class CF_MAE(nn.Module):
         
         self.encoder = timm.create_model(
             self.encoder_name,
-            pretrained=config['ENCODER']['PRETRAINED'],
+            pretrained=True,
             num_classes=0,
             drop_path_rate=config['ENCODER']['DROP_PATH'],
             global_pool='',
         ) 
-        # here what I am thinking is if the encoder we are creating here is pretrained, we can freez the weights and train the projector and chnage module
-        # also the same for the decoder if its the standard decoder already used
-        self.encoder._is_init = True 
 
         self.pre_projection = nn.Sequential(
             nn.Linear(self.embed_dim, self.embed_dim),
             nn.GELU(),
             nn.Linear(self.embed_dim, self.embed_dim),
         )
-        self.pre_projection._is_init = True 
-
         
         self.post_projection = nn.Sequential(
             nn.Linear(self.embed_dim, self.embed_dim),
             nn.GELU(),
             nn.Linear(self.embed_dim, self.embed_dim),
         )
-        self.post_projection._is_init = True 
 
         self.change_encoder = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
             nn.GELU(),
             nn.Linear(self.embed_dim * 2, self.embed_dim),
         )
-        self.change_encoder._is_init = True 
         
         self.decoder_embed = nn.Linear(
             self.embed_dim,
             self.embed_dim
         )
-        self.decoder_embed._is_init = True 
         
         self.mask_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
         
@@ -123,31 +115,29 @@ class CF_MAE(nn.Module):
             img_size=self.img_size,
             patch_size=self.patch_size
         )
-        self.decoder._is_init = True 
         
         self.initialize_weights()
     
     def initialize_weights(self):
-
-        # Initialize mask token
         nn.init.normal_(self.mask_token, std=0.02)
-        # Initialize linear layers
-        self.apply(self._init_weights)
-    
-    def _init_weights(self, m):
-        if not hasattr(m, "_is_init"):
-            return  # skiping timm encoder pretrained weights init 
-        if isinstance(m, nn.Linear):
-            nn.init.xavier_uniform_(m.weight)
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.Conv2d):
-            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.BatchNorm2d):
-            nn.init.constant_(m.weight, 1)
+
+        # only the from-scratch modules; the timm encoder keeps its pretrained weights
+        for module in (self.pre_projection, self.post_projection, self.change_encoder,
+                    self.decoder_embed, self.decoder):
+            module.apply(self._init_weights)
+
+def _init_weights(self, m):
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight)
+        if m.bias is not None:
             nn.init.constant_(m.bias, 0)
+    elif isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        if m.bias is not None:
+            nn.init.constant_(m.bias, 0)
+    elif isinstance(m, nn.BatchNorm2d):
+        nn.init.constant_(m.weight, 1)
+        nn.init.constant_(m.bias, 0)
     
     @torch.jit.ignore
     def no_weight_decay(self):
@@ -192,7 +182,7 @@ class CF_MAE(nn.Module):
         
         return x, mask, ids_restore
     
-    def compute_change_encoding(self, z_pre, z_post): # This needs strong logic how element wise concatenation of [x,y, x-y, x*y]
+    def compute_change_encoding(self, z_pre, z_post):
         """Compute rich difference encoding"""
 
         z_concat = torch.cat([
@@ -204,7 +194,7 @@ class CF_MAE(nn.Module):
         z_diff = self.change_encoder(z_concat)
         return z_diff
     
-    def forward(self, img_pre, img_post):  # here if we are constrained by computational burden we have to have alternative. I will getback on this
+    def forward(self, img_pre, img_post): 
 
         B = img_pre.shape[0]
         N = (self.img_size // self.patch_size) ** 2

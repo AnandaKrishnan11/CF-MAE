@@ -87,7 +87,7 @@ class MS_CFTev1(nn.Module):
 
         self.encoder = timm.create_model(
             config['ENCODER']['BACKBONE'],
-            pretrained=True, 
+            pretrained=False, 
             num_classes=0,
             drop_rate=config['ENCODER']['DROP_OUT'],
             drop_path_rate=config['ENCODER']['DROP_PATH'],
@@ -99,7 +99,7 @@ class MS_CFTev1(nn.Module):
             nn.GELU(),
             nn.Linear(self.embed_dim, self.embed_dim),
         )
-        #self.pre_projection._is_init = True 
+        self.pre_projection._is_init = True 
 
         
         self.post_projection = nn.Sequential(
@@ -107,22 +107,22 @@ class MS_CFTev1(nn.Module):
             nn.GELU(),
             nn.Linear(self.embed_dim, self.embed_dim),
         )
-        #self.post_projection._is_init = True 
+        self.post_projection._is_init = True 
 
         self.change_encoder = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
             nn.GELU(),
             nn.Linear(self.embed_dim * 2, self.embed_dim),
         )
-        #self.change_encoder._is_init = True 
+        self.change_encoder._is_init = True 
         
         self.decoder_embed = nn.Linear(
             self.embed_dim,
             self.embed_dim
         )
-        #self.decoder_embed._is_init = True 
+        self.decoder_embed._is_init = True 
 
-        #self.initialize_weights()
+        self.initialize_weights()
     
     def initialize_weights(self):
 
@@ -191,7 +191,6 @@ class MS_CFTdv2(nn.Module):
         self.num_patches_per_dim = self.img_size // self.patch_size
         self.num_class = config['DECODER']['OUT_CHANNEL']
 
-        # First upsampling block (no skip)
         self.up1 = nn.Sequential(
             nn.Conv2d(self.embed_dim, 256*4, kernel_size=3, padding=1),
             nn.PixelShuffle(2),
@@ -199,7 +198,6 @@ class MS_CFTdv2(nn.Module):
             nn.ReLU(inplace=True),
         )
         
-        # Second upsampling block (with skip from z_diff3)
         self.up2 = nn.Sequential(
             nn.Conv2d(256 + self.embed_dim, 128*4, kernel_size=3, padding=1),  # +embed_dim for skip
             nn.PixelShuffle(2),
@@ -207,7 +205,6 @@ class MS_CFTdv2(nn.Module):
             nn.ReLU(inplace=True),
         )
         
-        # Third upsampling block (with skip from z_diff2)
         self.up3 = nn.Sequential(
             nn.Conv2d(128 + self.embed_dim, 64*4, kernel_size=3, padding=1),  # +embed_dim for skip
             nn.PixelShuffle(2),
@@ -215,7 +212,6 @@ class MS_CFTdv2(nn.Module):
             nn.ReLU(inplace=True),
         )
         
-        # Fourth upsampling block (with skip from z_diff1)
         self.up4 = nn.Sequential(
             nn.Conv2d(64 + self.embed_dim, 64*4, kernel_size=3, padding=1),  # +embed_dim for skip
             nn.PixelShuffle(2),
@@ -284,7 +280,6 @@ class MS_CFTdv2(nn.Module):
             x = torch.cat([x, skip1], dim=1)
         x = self.up4(x)
         
-        # Final convolution
         x = self.final(x)
 
         return x
@@ -311,20 +306,6 @@ class MS_CFTev2(nn.Module):
             drop_path_rate=config['ENCODER']['DROP_PATH'],
             global_pool='',
         )
-        #try: 
-            #check= torch.load(self.config['SATMAE']['WEIGHT'],map_location='cpu',weights_only=False)
-            #new_check =  {}
-
-            #for k,v in check['model'].items():
-                #if k.startswith('pos_embed') or k.startswith('decoder') or k.startswith('channel_embed') or k.startswith('mask_token'):
-                    #continue
-                #else:
-                    #new_check[k]=v
-            #mis,unx = self.encoder.load_state_dict(new_check,strict=False)
-            #print('LOADED SATMAE WEIGHT')
-            #print(unx)
-        #except Exception as e:
-            #print(e)
         
         self.change_encoder1 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -333,7 +314,7 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3)
         )
-        #self.change_encoder1._is_init = True
+        self.change_encoder1._is_init = True
 
         self.change_encoder2 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -342,7 +323,7 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3),
         )
-        #self.change_encoder2._is_init = True
+        self.change_encoder2._is_init = True
 
         self.change_encoder3 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -351,7 +332,7 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3))
         
-        #self.change_encoder3._is_init = True
+        self.change_encoder3._is_init = True
 
         self.change_encoder4 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -360,14 +341,14 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3)
         )
-        #self.change_encoder4._is_init = True
+        self.change_encoder4._is_init = True
 
         # Decoder embed
         self.decoder_embed = nn.Sequential(nn.Linear(self.embed_dim ,self.embed_dim ),
                                            nn.GELU(),
                                            nn.Dropout(0.2),
                                             nn.Linear(self.embed_dim, self.embed_dim))
-        #self.decoder_embed._is_init = True
+        self.decoder_embed._is_init = True
         
         self.initialize_weights()
 
@@ -474,7 +455,7 @@ class MS_CFTev3(nn.Module):
 
         self.encoder = timm.create_model(
             self.encoder_name,
-            pretrained=True, 
+            pretrained=False, 
             num_classes=0,
             drop_rate=config['ENCODER']['DROP_OUT'],
             drop_path_rate=config['ENCODER']['DROP_PATH'],
@@ -488,7 +469,7 @@ class MS_CFTev3(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3)
         )
-        #self.change_encoder1._is_init = True
+        self.change_encoder1._is_init = True
 
         self.change_encoder2 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -497,7 +478,7 @@ class MS_CFTev3(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3),
         )
-        #self.change_encoder2._is_init = True
+        self.change_encoder2._is_init = True
 
         self.change_encoder3 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -506,7 +487,7 @@ class MS_CFTev3(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.2))
         
-        #self.change_encoder3._is_init = True
+        self.change_encoder3._is_init = True
 
         self.change_encoder4 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -515,16 +496,16 @@ class MS_CFTev3(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.2)
         )
-        #self.change_encoder4._is_init = True
+        self.change_encoder4._is_init = True
 
         # Decoder embed
         self.decoder_embed = nn.Sequential(nn.Linear(self.embed_dim*4 ,self.embed_dim*2 ),
                                            nn.GELU(),
                                            nn.Dropout(0),
                                             nn.Linear(self.embed_dim*2, self.embed_dim))
-        #self.decoder_embed._is_init = True
+        self.decoder_embed._is_init = True
         
-        #self.initialize_weights()
+        self.initialize_weights()
 
     def initialize_weights(self):
         self.apply(self._init_weights)

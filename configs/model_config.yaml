@@ -7,7 +7,6 @@ PRETRAIN:
   TYPE: MAE
   ENCODER:
     BACKBONE: vit_base_patch16_224
-    PRETRAINED: False
     IMG_SIZE: 224
     IN_CHANNELS: 3
     PATCH_SIZE: 16
