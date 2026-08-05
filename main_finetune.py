@@ -78,7 +78,6 @@ def main():
       logger.info(f'Model Config - {model_config}')
       
       logger.info(f"Creating model:{model_config['TYPE']} style--{model_config['NAME']}")
-      print(f"[INFO]---Creating model:{model_config['TYPE']} style--{model_config['NAME']}")
       model = build_model(model_config,is_pretrain=False)
 
       model = load_pretrained_cfmae(model,model_config)
@@ -88,20 +87,15 @@ def main():
       optimizer = build_optimizer(model_config,model,logger,is_pretrain=False)
 
       n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-      print(f"[INFO]----Model initialized with {n_parameters} number of paramter")
-      logger.info(f"number of params: {n_parameters}")
+      logger.info(f"Model initialized with {n_parameters} number of paramter")
 
       train_loader = build_loader(data_config,logger,run='train')
       val_loader = build_loader(data_config,logger,run='val')
-
-      logger.info(f"[INFO]----Total number of Images used {len(train_loader.dataset)}")
-      logger.info(f"[INFO]----Image size {data_config['IMAGE_SIZE']}")
-      logger.info(f"[INFO]----Image channels {data_config['NUM_CHANNELS']}")
       logger.info(f"[INFO]----Batch size used {data_config['BATCH_SIZE']}")
 
       lr_scheduler = build_scheduler(model_config,logger, optimizer,n_iter_per_epoch=len(train_loader))
 
-      best_iou = -1.0 #We are only saving the best model and latest one
+      best_iou = -1.0
       early_stop_counter = 0
 
       #Resume model training
@@ -146,8 +140,6 @@ def main():
                         loss = loss / accumulation_steps
                         loss.backward()
                         if grad_clip:
-                              # as I understood, the gradient is cliped in place, I would rather not save the grad norms  
-                              # as indicated here https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html#torch.nn.utils.clip_grad_norm_
                               torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
 
                         if idx % accumulation_steps == 0 or (idx == num_steps):
@@ -214,7 +206,7 @@ def main():
                   save_state['best_iou'] = best_iou
                   save_state['early_stop_counter'] = early_stop_counter
                   torch.save(save_state,model_config['TRAINING']['BEST_CHECKPOINT_PATH'])
-                  logger.info(f"[BEST CHECK POINT]--{model_config['TRAINING']['BEST_CHECKPOINT_PATH']} saved !!! iou {best_iou:.4f}")
+                  logger.info(f"[BEST CHECK POINT]--{model_config['TRAINING']['BEST_CHECKPOINT_PATH']} saved !!!")
             else:
                   early_stop_counter += 1
                   save_state['early_stop_counter'] = early_stop_counter

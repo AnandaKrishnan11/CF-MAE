@@ -80,15 +80,11 @@ def main():
       logger.info(f"number of params: {n_parameters}")
 
       train_loader = build_loader(data_config,logger)
-
-      print(f"[INFO]----Total number of Images used {len(train_loader.dataset)}")
-      print(f"[INFO]----Image size {data_config['IMAGE_SIZE']}")
-      print(f"[INFO]----Number of channels {data_config['NUM_CHANNELS']}")
       print(f"[INFO]----Batch size used {data_config['BATCH_SIZE']}")
 
       lr_scheduler = build_scheduler(model_config,logger, optimizer,n_iter_per_epoch=len(train_loader))
 
-      min_loss = float('inf') #We are only saving the best model
+      min_loss = float('inf')
 
       #Resume model training
       if model_config['TRAINING']['AUTO_RESUME'] and os.path.isfile(model_config['TRAINING']['LAST_CHECKPOINT_PATH']):
