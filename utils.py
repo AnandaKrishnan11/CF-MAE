@@ -74,7 +74,7 @@ def load_v1(model, state):
     prefixes = ("encoder.", "change_encoder.", "decoder_embed.",
                 "pre_projection.", "post_projection.")
     groups = split_by_prefix(state, prefixes)
-    target = model.encoderv1
+    target = model.encoder
 
     load_into(target.encoder, groups["encoder."], "encoder", strict=True)
     load_into(target.pre_projection, groups["pre_projection."], "pre_projection", strict=True)

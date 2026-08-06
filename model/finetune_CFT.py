@@ -99,50 +99,23 @@ class MS_CFTev1(nn.Module):
             nn.GELU(),
             nn.Linear(self.embed_dim, self.embed_dim),
         )
-        self.pre_projection._is_init = True 
-
         
         self.post_projection = nn.Sequential(
             nn.Linear(self.embed_dim, self.embed_dim),
             nn.GELU(),
             nn.Linear(self.embed_dim, self.embed_dim),
         )
-        self.post_projection._is_init = True 
 
         self.change_encoder = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
             nn.GELU(),
             nn.Linear(self.embed_dim * 2, self.embed_dim),
         )
-        self.change_encoder._is_init = True 
         
         self.decoder_embed = nn.Linear(
             self.embed_dim,
             self.embed_dim
         )
-        self.decoder_embed._is_init = True 
-
-        self.initialize_weights()
-    
-    def initialize_weights(self):
-
-        # Initialize linear layers
-        self.apply(self._init_weights)
-    
-    def _init_weights(self, m):
-        if not hasattr(m, "_is_init"):
-            return  # skiping pretrained weights init 
-        if isinstance(m, nn.Linear):
-            nn.init.xavier_uniform_(m.weight)
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.Conv2d):
-            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.BatchNorm2d):
-            nn.init.constant_(m.weight, 1)
-            nn.init.constant_(m.bias, 0)
 
     def encoder4segm(self,x):
 
@@ -314,7 +287,6 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3)
         )
-        self.change_encoder1._is_init = True
 
         self.change_encoder2 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -323,7 +295,6 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3),
         )
-        self.change_encoder2._is_init = True
 
         self.change_encoder3 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -332,7 +303,6 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3))
         
-        self.change_encoder3._is_init = True
 
         self.change_encoder4 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -341,34 +311,13 @@ class MS_CFTev2(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3)
         )
-        self.change_encoder4._is_init = True
 
         # Decoder embed
         self.decoder_embed = nn.Sequential(nn.Linear(self.embed_dim ,self.embed_dim ),
                                            nn.GELU(),
                                            nn.Dropout(0.2),
                                             nn.Linear(self.embed_dim, self.embed_dim))
-        self.decoder_embed._is_init = True
         
-        self.initialize_weights()
-
-    def initialize_weights(self):
-        self.apply(self._init_weights)
-    
-    def _init_weights(self, m):
-        if not hasattr(m, "_is_init"):
-            return 
-        if isinstance(m, nn.Linear):
-            nn.init.xavier_uniform_(m.weight)
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.Conv2d):
-            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.BatchNorm2d):
-            nn.init.constant_(m.weight, 1)
-            nn.init.constant_(m.bias, 0)
     
     def blocks1(self, x):
 
@@ -469,7 +418,6 @@ class MS_CFTev3(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3)
         )
-        self.change_encoder1._is_init = True
 
         self.change_encoder2 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -478,7 +426,6 @@ class MS_CFTev3(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.3),
         )
-        self.change_encoder2._is_init = True
 
         self.change_encoder3 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -487,7 +434,6 @@ class MS_CFTev3(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.2))
         
-        self.change_encoder3._is_init = True
 
         self.change_encoder4 = nn.Sequential(
             nn.Linear(self.embed_dim * 3, self.embed_dim * 2),
@@ -496,34 +442,12 @@ class MS_CFTev3(nn.Module):
             nn.Linear(self.embed_dim * 2, self.embed_dim),
             nn.Dropout(0.2)
         )
-        self.change_encoder4._is_init = True
 
         # Decoder embed
         self.decoder_embed = nn.Sequential(nn.Linear(self.embed_dim*4 ,self.embed_dim*2 ),
                                            nn.GELU(),
                                            nn.Dropout(0),
                                             nn.Linear(self.embed_dim*2, self.embed_dim))
-        self.decoder_embed._is_init = True
-        
-        self.initialize_weights()
-
-    def initialize_weights(self):
-        self.apply(self._init_weights)
-    
-    def _init_weights(self, m):
-        if not hasattr(m, "_is_init"):
-            return 
-        if isinstance(m, nn.Linear):
-            nn.init.xavier_uniform_(m.weight)
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.Conv2d):
-            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.BatchNorm2d):
-            nn.init.constant_(m.weight, 1)
-            nn.init.constant_(m.bias, 0)
     
     def blocks1(self, x):
 
@@ -631,9 +555,14 @@ class MS_CFT4Segm(nn.Module):
             self.encoder = MS_CFTev3(config)
             self.decoder = MS_CFTdv1(config)
 
+        else:
+            raise ValueError(
+                f"Unknown VERSION {self.version!r}; expected one of v1, v2, v3"
+            )
+
     @torch.jit.ignore
     def no_weight_decay(self):
-        return 'pos_embed'
+        return {'encoder.encoder.pos_embed'}
     
     def forward(self, pre, post):
 
