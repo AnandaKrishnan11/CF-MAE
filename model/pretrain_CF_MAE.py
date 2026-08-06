@@ -18,7 +18,8 @@ class simDecoder(nn.Module):
         self,
         embed_dim,
         img_size,
-        patch_size
+        patch_size,
+        in_chans = 3
     ):
         super().__init__()
         
@@ -29,7 +30,7 @@ class simDecoder(nn.Module):
 
         self.decoder = nn.Sequential(nn.Conv2d(
             in_channels=embed_dim,
-            out_channels=patch_size ** 2 * 3, 
+            out_channels=patch_size ** 2 * in_chans, 
             kernel_size=1),
             nn.PixelShuffle(patch_size))
         
@@ -73,6 +74,7 @@ class CF_MAE(nn.Module):
 
         self.img_size = config['ENCODER']['IMG_SIZE']
         self.patch_size = config['ENCODER']['PATCH_SIZE']
+        self.in_chans = config['ENCODER']['IN_CHANNELS']
         self.encoder_name = config['ENCODER']['BACKBONE']
         self.mask_ratio = config['MASKING']['MASK_RATIO']
         self.embed_dim = config['ENCODER']['EMBED_DIM']
@@ -113,7 +115,8 @@ class CF_MAE(nn.Module):
         self.decoder = simDecoder(
             embed_dim=self.embed_dim,
             img_size=self.img_size,
-            patch_size=self.patch_size
+            patch_size=self.patch_size,
+            in_chans=self.in_chans
         )
         
         self.initialize_weights()
@@ -126,18 +129,18 @@ class CF_MAE(nn.Module):
                     self.decoder_embed, self.decoder):
             module.apply(self._init_weights)
 
-def _init_weights(self, m):
-    if isinstance(m, nn.Linear):
-        nn.init.xavier_uniform_(m.weight)
-        if m.bias is not None:
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            nn.init.xavier_uniform_(m.weight)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.Conv2d):
+            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.BatchNorm2d):
+            nn.init.constant_(m.weight, 1)
             nn.init.constant_(m.bias, 0)
-    elif isinstance(m, nn.Conv2d):
-        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        if m.bias is not None:
-            nn.init.constant_(m.bias, 0)
-    elif isinstance(m, nn.BatchNorm2d):
-        nn.init.constant_(m.weight, 1)
-        nn.init.constant_(m.bias, 0)
     
     @torch.jit.ignore
     def no_weight_decay(self):
