@@ -29,7 +29,7 @@ See assets for the architecture diagrams of each CFT variant.
 
 ## Dataset
 
-Pre-training uses **PANDORA** (Paired Natural Disaster Observations for Reconstruction and Analysis), a multi-source, multi-modal dataset compiled from openly available benchmarks. It contains 376,634 paired pre-/post-disaster scenes, chipped to 3 × 224 × 224. 
+Pre-training uses **PANDORA** (Paired Natural Disaster Observations for Reconstruction and Analysis), a multi-source, multi-modal dataset compiled from openly available benchmarks. It contains 376,633 paired pre-/post-disaster scenes, chipped to 3 × 224 × 224. 
 
 | Dataset            | Images  | Modality |
 |--------------------|---------|----------|
