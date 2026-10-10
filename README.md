@@ -129,7 +129,7 @@ Quantitative evaluation (F1 & IoU of change class) against CNN, transformer, and
 ---
 Note: For all models in this table, DSIFN test metrics are computed using the dataset’s original validation split.
 
-
+---
 ## Installation
 
 ```bash
