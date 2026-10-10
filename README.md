@@ -110,7 +110,6 @@ Access Data via: Will be released soon
 ## Results
 
 Quantitative evaluation (F1 & IoU of change class) against CNN, transformer, and foundation-model baselines:
-
 | Model | S2-WCD F1 | S2-WCD IoU | DSIFN-CD F1 | DSIFN-CD IoU | Maui F1 | Maui IoU |
 |--------------------|:---------:|:----------:|:-----------:|:------------:|:-------:|:--------:|
 | FC-EF              | 0.83 | 0.71 | 0.53 | 0.36 | 0.75 | 0.60 |
@@ -127,6 +126,7 @@ Quantitative evaluation (F1 & IoU of change class) against CNN, transformer, and
 | **CFTv1 (PANDORA)**  | 0.91 | 0.83 | 0.90 | 0.75 | 0.81 | **0.74** |
 | **CFTv2 (PANDORA)**  | **0.94** | 0.84 | 0.93 | 0.81 | **0.82** | **0.74** |
 | **CFTv3 (PANDORA)**  | **0.94** | 0.84 | **0.94** | **0.82** | **0.82** | **0.74** |
+Note: For all models in this table, DSIFN test metrics are computed using the dataset’s original validation split.
 ---
 
 ## Installation
