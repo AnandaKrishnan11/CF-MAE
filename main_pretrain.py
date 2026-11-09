@@ -19,10 +19,11 @@ def parse_args():
       parser = argparse.ArgumentParser('CF-MAE pretraining')
       parser.add_argument('--data-path', default=None, required= True, help='override the dataset root')
       parser.add_argument('--output', default=None, required= True, help='override the log/checkpoint directory')
-      parser.add_argument('--batch-size', type=int, default=128)
-      parser.add_argument('--lr', type=float, default=0.0001)
-      parser.add_argument('--epochs', type=int, default=100)
-      parser.add_argument('--accumulation-steps', type=int, default=0)
+      # default=None: the config value is used unless the flag is passed
+      parser.add_argument('--batch-size', type=int, default=None, help='override data BATCH_SIZE')
+      parser.add_argument('--lr', type=float, default=None, help='override LEARNING_RATE')
+      parser.add_argument('--epochs', type=int, default=None, help='override TOTAL_EPOCHS')
+      parser.add_argument('--accumulation-steps', type=int, default=None, help='override ACCUMULATION_STEPS')
       parser.add_argument('--no-resume', action='store_true', help='ignore the last checkpoint')
       return parser.parse_args()
 
@@ -123,10 +124,11 @@ def main():
                   if accumulation_steps > 1:
                         loss = loss / accumulation_steps
                         loss.backward()
-                        if grad_clip:
-                              torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
 
                         if idx % accumulation_steps == 0 or idx == num_steps:
+                              # clip once, on the fully accumulated gradient
+                              if grad_clip:
+                                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
                               optimizer.step()
                               optimizer.zero_grad()
                               lr_scheduler.step_update(epoch * num_steps + idx)
