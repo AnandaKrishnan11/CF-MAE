@@ -34,28 +34,17 @@ class simDecoder(nn.Module):
             kernel_size=1),
             nn.PixelShuffle(patch_size))
         
-    def forward(self, x, ids_restore, mask_token):
+    def forward(self, x_full):
         """
         Args:
-            x: (B, N_visible, D) - visible patch embeddings
-            ids_restore: (B, N) - indices to restore full sequence
-            mask_token: (1, 1, D) - learnable mask token
+            x_full: (B, N, D) - all N encoded tokens in original order (mask tokens were
+                    inserted before the encoder, so masked positions already carry context)
         Returns:
             pred: (B, C, H, W) - reconstructed image
         """
-        B, N_visible, D = x.shape
-        N = self.num_patches_per_dim ** 2
-        
-        mask_tokens = mask_token.repeat(B, N - N_visible, 1)
-        
-        x_full = torch.cat([x, mask_tokens], dim=1)  
-        
-        x_full = torch.gather(
-            x_full, 
-            dim=1, 
-            index=ids_restore.unsqueeze(-1).repeat(1, 1, D)
-        ) 
-        
+        B, N, D = x_full.shape
+        assert N == self.num_patches_per_dim ** 2, f"decoder got {N} tokens, expected {self.num_patches_per_dim ** 2}"
+
         H = W = self.num_patches_per_dim
         x_spatial = x_full.transpose(2,1).reshape(B, D, H, W)
         
@@ -172,12 +161,19 @@ class CF_MAE(nn.Module):
         """Encode image with masking"""
 
         x = self.encoder.patch_embed(img)
-        
-        if hasattr(self.encoder, 'pos_embed'):
-            x = x + self.encoder.pos_embed[:, 1:, :]  # Skip cls token
+        B, N, D = x.shape
+        pos_embed = self.encoder.pos_embed[:, 1:, :]  # Skip cls token, (1, N, D)
 
-        x, mask, ids_restore,_ = self.random_masking(x, mask_ratio,noise)
-        
+        x = x + pos_embed
+
+        x_vis, mask, ids_restore, _ = self.random_masking(x, mask_ratio, noise)  # (B, N_keep, D)
+
+        mask_tokens = self.mask_token.expand(B, N - x_vis.shape[1], -1)
+        x = torch.cat([x_vis, mask_tokens], dim=1)
+        x = torch.gather(x, dim=1, index=ids_restore.unsqueeze(-1).expand(-1, -1, D))  
+        x = x + pos_embed * mask.unsqueeze(-1) 
+        assert x.shape == (B, N, D), f"encoder input {tuple(x.shape)} != {(B, N, D)}"
+
         for block in self.encoder.blocks:
             x = block(x)
         
@@ -213,7 +209,7 @@ class CF_MAE(nn.Module):
         
         z_dec = self.decoder_embed(z_diff)
         
-        pred_post = self.decoder(z_dec, ids_restore_post, self.mask_token)
+        pred_post = self.decoder(z_dec)
         
         #Computing loss
         loss = self.compute_loss(img_post,pred_post,mask_post)
