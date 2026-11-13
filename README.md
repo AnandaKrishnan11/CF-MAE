@@ -3,8 +3,7 @@
 
 >PyTorch implementation of CF-MAE, a change-aware self-supervised pre-training framework for multi-hazard change detection from bi-temporal remote sensing imagery.
 
-> Presented at **[IGARSS 2026](https://2026.ieeeigarss.org/)** — Washington, D.C -- **[PAPER]([https://2026.ieeeigarss.org/](https://ieeexplore.ieee.org/abstract/document/11730188))**
-
+> Presented at **[IGARSS 2026](https://2026.ieeeigarss.org/)** — Washington, D.C. — **[PAPER](https://ieeexplore.ieee.org/abstract/document/11730188)**
 ---
 
 ## Overview
